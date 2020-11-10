@@ -60,6 +60,7 @@ import zipfile
 import glob
 import time
 
+from random import randrange
 
 def getRGB(x,y,imageArray):
 
@@ -185,235 +186,6 @@ def array2raster(newRasterfn,rasterOrigin,pixelWidth,pixelHeight,array,espgCode)
     outRasterSRS.ImportFromEPSG(int(espgCode))
     outRaster.SetProjection(outRasterSRS.ExportToWkt())
     outband.FlushCache()
-
-def processes(image, location, neighbourhood, threshold, outVec, scratch,workspace,espgCode):
-        QApplication.setOverrideCursor(Qt.WaitCursor)
-        print("Processing...")
-        print(outVec)
-        kxyMap = location
-        file = image
-        # print(file)
-        src = gdal.Open(file)
-        geoTrans = src.GetGeoTransform()
-        src = None
-        kxy = world2Pixel(geoTrans, kxyMap[0], kxyMap[1])
-        # print(kxy)
-        pxlNeighbourhood = int(neighbourhood / geoTrans[1])
-        if pxlNeighbourhood > kxy[1]:
-            print("Will Fall Edge..")
-            for i in range(1, neighbourhood + 1):
-                value = int(i / geoTrans[1])
-                if value < kxy[1]:
-                    pxlNeighbourhood = value
-        # print(pxlNeighbourhood)
-        originTop = (kxy[1] - pxlNeighbourhood)
-        # print(originTop)
-        originLeft = kxy[0] - pxlNeighbourhood
-        rasterorigin = pixel2World(geoTrans, originLeft, originTop)
-        src = None
-        bands = []
-        for x in range(1, 4):
-            ds = gdal.Open(file)
-            bandArray = np.array(ds.GetRasterBand(x).ReadAsArray())
-            bands.append(bandArray)
-            ds = None
-
-        color_image = np.stack(bands, axis=2)
-
-        # color_image = getLab(color_image)
-
-        candiatePixels = GenerateNeighbourhood(color_image, pxlNeighbourhood, kxy)
-
-        # candiatePixels = getLab(candiatePixels)
-
-        # print(candiatePixels.shape)
-        # print(pxlNeighbourhood)
-        candiatePixelsLen = len(candiatePixels[0])
-        spatialCentre = candiatePixelsLen / 2
-
-        #### There is now a centroid pixel kxy and a neghbourhood of pixels around the centroid from whcih candiates will be selected ####
-
-        #### There will now be a spatial and spectral distance calculation made and a total distance calculation found ####
-
-        #### plot k centroid in 3 dimensional colour space ####
-
-        kCentroidColour = getRGB(kxy[1], kxy[0], color_image)
-
-        colorDist = np.empty_like(candiatePixels)
-        colorDist = colorDist[:, :, 0]
-        spatialDist = np.empty_like(candiatePixels)
-        spatialDist = spatialDist[:, :, 0]
-
-        DistMap = np.empty_like(candiatePixels)
-        DistMap = DistMap[:, :, 0]
-
-        spatialDist = np.indices(spatialDist.shape)
-        coGrid = np.stack(spatialDist)
-        yCo = coGrid[0, :, :]
-        xCo = coGrid[1, :, :]
-        spatialMap = np.empty_like(candiatePixels)
-        spatialMap = spatialMap[:, :, 0]
-        var1 = np.subtract(spatialCentre, xCo)
-        var2 = np.subtract(spatialCentre, yCo)
-        power1 = np.power(var1, 2)
-        power2 = np.power(var2, 2)
-        length = np.add(power1, power2)
-        spatialDist = np.sqrt(length)
-
-        candiatePixelsRed = candiatePixels[:, :, 0]
-
-        var1 = np.subtract(kCentroidColour[0], candiatePixels[:, :, 0])
-
-        var2 = np.subtract(kCentroidColour[1], candiatePixels[:, :, 1])
-        var3 = np.subtract(kCentroidColour[2], candiatePixels[:, :, 2])
-        #### I now have 2 distances which can be added together to generate a total image where spectral distance or spatial distance can be weighted ####
-        power1 = np.power(var1, 2)
-        power2 = np.power(var2, 2)
-        power3 = np.power(var3, 2)
-
-        length = np.add(power1, np.add(power2, power3))
-
-        colorDist = np.sqrt(length)
-
-
-
-        totalDistanceGrid = np.add(np.sqrt(spatialDist), colorDist)
-        # totalDistanceGrid = colorDist
-
-        binaryGrid = np.where(totalDistanceGrid > threshold, np.nan, 1)
-
-        outRast = '{0}TempRast.tif'.format(scratch)
-        tmpVec = '{0}TempVec.shp'.format(scratch)
-
-        src = gdal.Open(file)
-        # print(src)
-        geoTrans = src.GetGeoTransform()
-        rtnX = geoTrans[1]
-        rtnY = geoTrans[5]
-        src = None
-        array2raster(outRast, rasterorigin, rtnX, rtnY, binaryGrid,espgCode)
-
-        rastLayer = QgsRasterLayer(outRast)
-
-        provider = rastLayer.dataProvider()
-
-        provider.setNoDataValue(1, 0)
-
-        rastLayer.triggerRepaint()
-
-        xmin = location[0] - 1
-        xmax = location[0] + 1
-
-        ymin = location[1] - 1
-        ymax = location[1] + 1
-
-        tL = QgsPointXY(xmin, ymin)
-        bR = QgsPointXY(xmax, ymax)
-
-        rec = QgsRectangle(tL, bR)
-
-        processing.run("gdal:polygonize", {'INPUT': rastLayer, 'BAND': 1, 'FIELD': 'DN', 'EIGHT_CONNECTEDNESS': False,
-                                           'OUTPUT': tmpVec})
-
-        processingVec = tmpVec
-
-        processingVecInt = tmpVec.replace('.shp', '_int.shp')
-
-
-        layer = QgsVectorLayer(tmpVec,"tmp Layer",'ogr')
-
-        with edit(layer):
-            # build a request to filter the features based on an attribute
-            request = QgsFeatureRequest().setFilterExpression('"DN" != 1')
-
-            # we don't need attributes or geometry, skip them to minimize overhead.
-            # these lines are not strictly required but improve performance
-            request.setSubsetOfAttributes([])
-            request.setFlags(QgsFeatureRequest.NoGeometry)
-
-            # loop over the features and delete
-            for f in layer.getFeatures(request):
-                layer.deleteFeature(f.id())
-
-        # QgsProject.instance().addMapLayer(layer)s
-        provider = layer.dataProvider()
-
-        spIndex = QgsSpatialIndex()  # create spatial index object
-
-        feat = QgsFeature()
-        fit = provider.getFeatures()  # gets all features in layer
-
-        # insert features to index
-        while fit.nextFeature(feat):
-            spIndex.insertFeature(feat)
-
-        pt = QgsPointXY(location[0], location[1])
-
-        # QgsSpatialIndex.nearestNeighbor (QgsPoint point, int neighbors)
-        nearestIds = spIndex.intersects(rec)  # we need only one neighbour
-
-        featureId = nearestIds[0]
-        fit2 = layer.getFeatures(QgsFeatureRequest().setFilterFid(featureId))
-        print(fit2)
-        ftr = QgsFeature()
-        print(ftr)
-
-        layer.select(featureId)
-
-        print("Write Vector")
-        print("ESPG Code: {0}".format(espgCode))
-
-        QgsVectorFileWriter.writeAsVectorFormat(layer, processingVecInt, 'System', QgsCoordinateReferenceSystem(espgCode),
-                                                'ESRI Shapefile', bool(True))
-
-        # tLayer = QgsVectorLayer(processingVecInt)
-        # QgsProject.instance().addMapLayer(tLayer)
-        #
-
-        tLayer = QgsVectorLayer(processingVecInt)
-        processingVecIntBuff = processingVecInt.replace('.shp','_Buff.shp')
-
-
-        processing.run("native:buffer",
-                       {'INPUT': tLayer, 'DISTANCE': 0.1,
-                        'SEGMENTS': 5, 'END_CAP_STYLE': 0, 'JOIN_STYLE': 0, 'MITER_LIMIT': 2, 'DISSOLVE': True,
-                        'OUTPUT': processingVecIntBuff})
-
-
-        # reply = QMessageBox.question(self.iface.mainWindow(), 'Continue?',
-        #                              'Do you want to digitise this feature?', QMessageBox.Yes, QMessageBox.No)
-
-        print("Write Merged Vector")
-        print("ESPG Code: {0}".format(espgCode))
-        print('EPSG: {0}'.format(espgCode))
-        processing.run("native:mergevectorlayers",
-                       {'LAYERS': [processingVecIntBuff, outVec], 'CRS': QgsCoordinateReferenceSystem('EPSG: {0}'.format(espgCode)),
-                        'OUTPUT': outVec})
-
-        layer = None
-        layer = QgsVectorLayer(outVec)
-        outVecJS = outVec.replace(".shp","")
-        QgsVectorFileWriter.writeAsVectorFormat(layer, outVecJS, "utf-8", driverName="GeoJSON")
-
-        layers = iface.mapCanvas().layers()
-        activeLayer = iface.activeLayer()
-        if activeLayer.type() == QgsMapLayer.VectorLayer:
-            QgsProject.instance().removeMapLayers( [activeLayer.id()] )
-
-
-        vLayer = QgsVectorLayer(outVec)
-        vLayer.renderer().symbol().setColor(QColor("blue"))
-        vLayer.triggerRepaint()
-        QgsProject.instance().addMapLayer(vLayer)
-
-
-
-
-        shutil.rmtree(scratch)
-
-        print("Complete")
-
-        QApplication.restoreOverrideCursor()
 
 def convert_wgs_to_utm(lon, lat):
     global espgCode
@@ -777,7 +549,7 @@ class RegionGrower:
     def getShp(self):
 
         qfd =QFileDialog()
-        title = 'Open Existing Shapefile'
+        title = 'Open Existing Vector Dataset'
         path = '~/Documents/'
         f = QFileDialog.getOpenFileName(qfd,title,path)[0]
         QgsMessageLog.logMessage(f)
@@ -809,9 +581,6 @@ class RegionGrower:
         scratch = scratchPath
         scratch = '{0}tmp/'.format(scratch)
 
-        outputDir = imageName.replace(filename, '')
-        outputDir = '{0}ProcessedFiles/'.format(outputDir)
-
         workspacePath = imageName.replace(filename, '')
         workspace = workspacePath
         workspace = '{0}Workspace/'.format(workspace)
@@ -819,693 +588,14 @@ class RegionGrower:
         if os.path.isdir(scratch) == False:
             os.mkdir(scratch)
 
-        if os.path.isdir(outputDir) == True:
-            shutil.rmtree(outputDir)
-            os.mkdir(outputDir)
-        else:
-            os.mkdir(outputDir)
-
         print(imageName)
 
-        if self.dlg.trainingData.isChecked() == False:
-
-                ds = gdal.Open(imageName)
-                dsarray = np.array(ds.GetRasterBand(1).ReadAsArray())
-                corarray = np.where(dsarray>0,1,0)
-
-                outFile = scratch+"BinImg.tif"
-                gdalSave(imageName,corarray,outFile,"GTIFF")
-
-                ds = None
-                dsarray = None
-                rastImg = QgsRasterLayer(outFile)
-
-                outVec =  scratch+"ScanExtent.shp"
-
-                processing.run("gdal:polygonize", {'INPUT': rastImg, 'BAND': 1, 'FIELD': 'DN', 'EIGHT_CONNECTEDNESS': False,
-                                                   'OUTPUT': outVec})
-
-                extentVecLyr = QgsVectorLayer(outVec)
-
-                outVec = outVec.replace('.shp','_Simp.shp')
-
-                processing.run("native:simplifygeometries",
-                               {'INPUT': extentVecLyr, 'METHOD': 0,
-                                'TOLERANCE': 1, 'OUTPUT': outVec})
-
-                extentVecLyr = None
-
-                layer = QgsVectorLayer(outVec,"Extent Layer",'ogr')
-
-                with edit(layer):
-                    # build a request to filter the features based on an attribute
-                    request = QgsFeatureRequest().setFilterExpression('"DN" != 1')
-
-                    # we don't need attributes or geometry, skip them to minimize overhead.
-                    # these lines are not strictly required but improve performance
-                    request.setSubsetOfAttributes([])
-                    request.setFlags(QgsFeatureRequest.NoGeometry)
-
-                    # loop over the features and delete
-                    for f in layer.getFeatures(request):
-                        layer.deleteFeature(f.id())
-
-                #### CLean the polygon to remove holes ####
-                outVecClean = outVec.replace('.shp', '_Clean.shp')
-                processing.run("native:deleteholes", {
-                    'INPUT': outVec,
-                    'MIN_AREA': 5000, 'OUTPUT': outVecClean})
-
-                outVecCleanDiss = outVec.replace('.shp', '_Diss.shp')
-                processing.run("native:dissolve",
-                               {'INPUT': outVecClean,
-                                'FIELD': [], 'OUTPUT': outVecCleanDiss})
-
-
-
-                #### Should be a dataset where there is only the scanned area ####
-
-                outputGridfn = scratch + 'Extent_Grid.shp'
-
-                ext = rastImg.extent()
-
-                xmin = ext.xMinimum()
-                xmax = ext.xMaximum()
-                ymin = ext.yMinimum()
-                ymax = ext.yMaximum()
-
-                # convert sys.argv to float
-                xmin = float(xmin)
-                xmax = float(xmax)
-                ymin = float(ymin)
-                ymax = float(ymax)
-                gridWidth = float(100)
-                gridHeight = float(100)
-
-                # get rows
-                rows = ceil((ymax - ymin) / gridHeight)
-                print(rows)
-                # get columns
-                cols = ceil((xmax - xmin) / gridWidth)
-                print(cols)
-                # start grid cell envelope
-                ringXleftOrigin = xmin
-                ringXrightOrigin = xmin + gridWidth
-                ringYtopOrigin = ymax
-                ringYbottomOrigin = ymax - gridHeight
-
-                # create output file
-
-                print(espgCode)
-
-                outDriver = ogr.GetDriverByName('ESRI Shapefile')
-                if os.path.exists(outputGridfn):
-                    os.remove(outputGridfn)
-                srs = osr.SpatialReference()
-                srs.ImportFromEPSG(int(espgCode))
-
-                outDataSource = outDriver.CreateDataSource(outputGridfn)
-                outLayer = outDataSource.CreateLayer(outputGridfn, srs, geom_type=ogr.wkbPolygon)
-                print(outLayer)
-                featureDefn = outLayer.GetLayerDefn()
-
-                # create grid cells
-                countcols = 0
-                while countcols < cols:
-                    countcols += 1
-
-                    # reset envelope for rows
-                    ringYtop = ringYtopOrigin
-                    ringYbottom = ringYbottomOrigin
-                    countrows = 0
-
-                    while countrows < rows:
-                        countrows += 1
-                        ring = ogr.Geometry(ogr.wkbLinearRing)
-                        ring.AddPoint(ringXleftOrigin, ringYtop)
-                        ring.AddPoint(ringXrightOrigin, ringYtop)
-                        ring.AddPoint(ringXrightOrigin, ringYbottom)
-                        ring.AddPoint(ringXleftOrigin, ringYbottom)
-                        ring.AddPoint(ringXleftOrigin, ringYtop)
-                        poly = ogr.Geometry(ogr.wkbPolygon)
-                        poly.AddGeometry(ring)
-
-                        # add new geom to layer
-                        outFeature = ogr.Feature(featureDefn)
-                        outFeature.SetGeometry(poly)
-                        outLayer.CreateFeature(outFeature)
-                        outFeature.Destroy
-
-                        # new envelope for next poly
-                        ringYtop = ringYtop - gridHeight
-                        ringYbottom = ringYbottom - gridHeight
-
-                    # new envelope for next poly
-                    ringXleftOrigin = ringXleftOrigin + gridWidth
-                    ringXrightOrigin = ringXrightOrigin + gridWidth
-
-                # Close DataSources
-                outDataSource.Destroy()
-
-
-                #### Perform a check... if extent centroid location is within scanned extent then keep, else del ####
-
-
-                gridOut = scratch+'Grid_Out.shp'
-                processing.run("native:extractbylocation",
-                               {'INPUT': outputGridfn,
-                                'PREDICATE': [0, 1, 5, 6],
-                                'INTERSECT': outVecCleanDiss,
-                                'OUTPUT': gridOut})
-
-                gridOutDiss = gridOut.replace('.shp', '_Diss.shp')
-                processing.run("native:dissolve",
-                               {'INPUT': gridOut,
-                                'FIELD': [], 'OUTPUT': gridOutDiss})
-
-                gridOutDissSimp = gridOutDiss.replace('.shp','_Simp.shp')
-                processing.run("native:simplifygeometries",
-                               {'INPUT':gridOutDiss, 'METHOD': 0,
-                                'TOLERANCE': 10, 'OUTPUT': gridOutDissSimp})
-
-                outVecJSCleanCor = gridOutDissSimp
-
-                #### Add New Field to the Scan Extent WGS Data Layer ####
-
-                fLayer = QgsVectorLayer(outVecJSCleanCor)
-
-                fLayer.dataProvider().deleteAttributes([0])
-                fLayer.updateFields()
-
-
-                layer_provider=fLayer.dataProvider()
-                layer_provider.addAttributes([QgsField("type",QVariant.String)])
-                fLayer.updateFields()
-
-                layer_provider=fLayer.dataProvider()
-                layer_provider.addAttributes([QgsField("label",QVariant.String)])
-                fLayer.updateFields()
-
-                fLayer.startEditing()
-                for feature in fLayer.getFeatures():
-                    id = feature.id()
-                    idx = fLayer.fields().names().index("type")
-                    attr_value = {idx:'bbox'}
-                    layer_provider.changeAttributeValues({id:attr_value})
-                fLayer.commitChanges()
-
-                outVecJSCleanLabel = outVecJSCleanCor.replace(".shp","_Labelled.shp")
-
-                # outImgJSVec = outImgJSVec.replace(scratch,outputDir)
-
-                QgsVectorFileWriter.writeAsVectorFormat(fLayer,outVecJSCleanLabel, 'System',
-                                                        QgsCoordinateReferenceSystem(4326),
-                                                        'ESRI Shapefile')
-
-                #### Merge the Water Bodies to the Scan Extent Dataset ####
-
-                # Bounding Box is outVecJSCleanLabel
-                # Water Sources is GeoJsonShp = outDir+saveFile + '.geojson'
-
-                #### Take the Processed File, get each feature in it, buffer it by 15m and then subset the Survey image to this extent ####
-
-                #### Save this to an output directory ####
-
-                #### Simplify Polygons ####
-
-
-                if self.dlg.fileShp.text() == '':
-                    saveFile = self.dlg.outVec.text()
-                    inputVec = outDir + saveFile + '.shp'
-                else:
-                    inputVec = self.dlg.fileShp.text()
-                    print("Resuming")
-
-
-                # inputVec = outDir+saveFile+'.shp'
-                outputVec = inputVec
-                processing.run("native:simplifygeometries",
-                               {'INPUT': inputVec, 'METHOD': 0,
-                                'TOLERANCE': 1.5, 'OUTPUT': inputVec})
-
-                outShp = inputVec
-
-                output = outShp.replace('.shp','_Merge.shp')
-
-                vecCount = QgsVectorLayer(inputVec,'Data',"ogr")
-
-                featCount = 0
-                for feat in vecCount.getFeatures():
-                    featCount +=1
-
-                print(featCount)
-
-
-                if featCount > 1:
-                    if self.dlg.trainingData.isChecked() == False:
-                        dissolve(outShp,output,False,False)
-                else:
-                    dissolve(outShp,output,True,False)
-
-
-
-                outShp = output
-
-                print(outShp)
-                shpLayer = QgsVectorLayer(outShp,outShp,"ogr")
-                print(espgCode)
-
-                crs = shpLayer.crs()
-                crs.createFromId(int(espgCode))
-                shpLayer.setCrs(crs)
-
-                print("CRS_Set")
-
-                #### Check if there is an output directoru for the subset images ####
-
-                subImgDir = 'Sub-Imgs/'
-                subImgPath = outputDir+subImgDir
-                if os.path.isdir(subImgPath) == False:
-                    os.mkdir(subImgPath)
-
-                print(shpLayer)
-
-                #### Delete Old Fields ####
-
-
-                shpLayer.dataProvider().deleteAttributes([0,1,2])
-                shpLayer.updateFields()
-
-                #### Add New Field to the ShpFile ####
-
-
-                layer_provider=shpLayer.dataProvider()
-                layer_provider.addAttributes([QgsField("type",QVariant.String)])
-                shpLayer.updateFields()
-
-                layer_provider = shpLayer.dataProvider()
-                layer_provider.addAttributes([QgsField("label", QVariant.String)])
-                shpLayer.updateFields()
-
-
-
-                shpLayer.startEditing()
-                counter = 0
-                for feature in shpLayer.getFeatures():
-                    counter +=1
-                    print(counter)
-                    print(feature)
-                    print("Enter Loop")
-
-
-                    #### Get Bounding Box of each individual Feature ####
-
-                    print(feature.geometry().boundingBox())
-                    Bb = feature.geometry().boundingBox()
-                    xmin = Bb.xMinimum()
-                    xmax = Bb.xMaximum()
-                    ymin = Bb.yMinimum()
-                    ymax = Bb.yMaximum()
-
-                    print(xmin,xmax)
-
-                    buff = feature.geometry().buffer(5, 1)
-                    print(buff)
-                    print("Buffering")
-
-                    buffLyr = QgsVectorLayer("Polygon?crs=EPSG:4326", "bufffer", "memory")
-
-                    print(buffLyr)
-                    crs = buffLyr.crs()
-                    crs.createFromId(int(espgCode))
-                    buffLyr.setCrs(crs)
-                    pr = buffLyr.dataProvider()
-                    b = QgsFeature()
-                    b.setGeometry(buff)
-                    pr.addFeature(b)
-                    buffLyr.updateExtents()
-                    # QgsProject.instance().addMapLayers([buffLyr])
-
-                    #### Get Feature Bounds Exact to Export ####
-
-                    fOut = feature.geometry()
-                    fOutLyr = QgsVectorLayer("Polygon?crs=EPSG:4326", "bufffer", "memory")
-
-                    crs = fOutLyr.crs()
-                    crs.createFromId(int(espgCode))
-                    fOutLyr.setCrs(crs)
-                    pr = fOutLyr.dataProvider()
-                    f = QgsFeature()
-                    f.setGeometry(fOut)
-                    pr.addFeature(f)
-                    fOutLyr.updateExtents()
-
-                    tmpVecFile = subImgPath+"tempFeatVec.geojson"
-
-                    QgsVectorFileWriter.writeAsVectorFormat(fOutLyr,tmpVecFile, "UTF-8", QgsCoordinateReferenceSystem(4326),
-                                                            "GEOJSON")
-
-                    #### Get the centroid location of the polygon and use a subset of this as the Unique ID, along with an int val at the end ####
-                    pt = feature.geometry().centroid().asPoint()
-                    print(pt)
-                    x = str(pt.x())
-                    print(x)
-                    y = str(pt.y())
-                    print(y)
-                    xSub = x.split('.')[0]
-                    print(xSub)
-                    ySub = y.split('.')[0]
-                    print(ySub)
-
-                    #### Delete Non Needed Properties ####
-
-                    #### Add Attributes ####
-
-
-                    id = feature.id()
-                    # idx = fLayer.fields().names().index("type")
-                    print(idx)
-                    attr_value = {0:'source'}
-                    layer_provider.changeAttributeValues({id:attr_value})
-
-                    id = feature.id()
-                    # idx = fLayer.fields().names().index("label")
-                    print(idx)
-                    attr_value = {1: "WaterBodyImg_{0}-{1}_{2}_BB".format(xSub,ySub,feature.id())}
-                    layer_provider.changeAttributeValues({id: attr_value})
-
-
-
-                    outputFile = subImgPath + "WaterBodyImg_{0}-{1}_{2}_BB.tif".format(xSub,ySub,feature.id())
-                    print(outputFile)
-
-
-                    #### Need to difference xMin, xMax then yMax, yMin ####
-
-                    #### need to find the greatest difference ####
-
-                    #### Subtract differences, get that, divide by 2. add and subtract from the smaller difference poinst then its a square ####
-
-                    xDifference = xmax-xmin
-
-                    yDifference = ymax-ymin
-
-                    greatestDiff = sorted([xDifference,yDifference])[-1]
-
-                    lowestDiff = sorted([xDifference,yDifference])[0]
-
-                    print(greatestDiff)
-
-                    changeDiff = greatestDiff-lowestDiff
-
-                    if xDifference > yDifference:
-
-                        #### chnage ¥ ####
-
-                        ymax = ymax+changeDiff/2
-                        ymin = ymin-changeDiff/2
-
-                    else:
-
-                        xmax=xmax+changeDiff/2
-                        xmin=xmin-changeDiff/2
-
-                    processing.run("gdal:cliprasterbyextent",
-                                   {'INPUT': imageName,
-                                    'PROJWIN': '{0},{1},{2},{3}'.format(xmin-10,xmax+10,ymin-10,ymax+10),
-                                    'NODATA': None, 'OPTIONS': 'COMPRESS=DEFLATE|PREDICTOR=2|ZLEVEL=9', 'DATA_TYPE': 1, 'OUTPUT': outputFile})
-
-
-
-                    #### Take the Polygon of the water Body. Convert to line feature. Buffer. Rasterise. Add to bands so that r = 255, g = 0, b= 0. this wil hten be passed to resample etc ...
-
-
-                    ## Save WaterBOdy Feature to Temp Vec File ##
-
-
-
-                    tmpLineFile = subImgPath+"tempLineFile.geojson"
-
-                    processing.run("native:polygonstolines", {
-                        'INPUT': tmpVecFile,
-                        'OUTPUT': tmpLineFile})
-
-                    tmpBuffVec = subImgPath+"Temp_buffer.geojson"
-
-                    processing.run("native:buffer", {
-                        'INPUT': tmpLineFile,
-                        'DISTANCE': 0.00000301802, 'SEGMENTS': 5, 'END_CAP_STYLE': 0, 'JOIN_STYLE': 0, 'MITER_LIMIT': 2,
-                        'DISSOLVE': False, 'OUTPUT': tmpBuffVec})
-
-                    polygonRast = subImgPath+'tmpPolygonRast.tif'
-
-
-                    rasterMultiBand = gdal.Open(outputFile)
-                    geoTrans = rasterMultiBand.GetGeoTransform()
-                    pixelSize = geoTrans[1]
-                    print(pixelSize)
-
-                    tmpBuffVecReproj = subImgPath+ 'tmpBuffVecReproj.geojson'
-
-                    processing.run("native:reprojectlayer", {
-                        'INPUT': tmpBuffVec,
-                        'TARGET_CRS': QgsCoordinateReferenceSystem('EPSG:{0}'.format(espgCode)), 'OUTPUT': tmpBuffVecReproj })
-
-                    processing.run("gdal:rasterize", {'INPUT':tmpBuffVecReproj,'FIELD':None,'BURN':255,'UNITS':1,'WIDTH':pixelSize,'HEIGHT':pixelSize,'EXTENT':'{0},{1},{2},{3} [EPSG:{4}]'.format(xmin-10,xmax+10,ymin-10,ymax+10,espgCode),'NODATA':0,'OPTIONS':'','DATA_TYPE':5,'INIT':None,'INVERT':False,'OUTPUT':polygonRast})
-
-
-
-                    ## Load Clipped Raster Data as arays ##
-
-                    ds = gdal.Open(outputFile)
-                    redReadArray = (np.array(ds.GetRasterBand(1).ReadAsArray()))
-                    ds = None
-
-                    ds = gdal.Open(outputFile)
-                    greenReadArray = (np.array(ds.GetRasterBand(2).ReadAsArray()))
-                    ds = None
-
-                    ds = gdal.Open(outputFile)
-                    blueReadArray = (np.array(ds.GetRasterBand(3).ReadAsArray()))
-                    ds = None
-
-                    ## Read Poly Rast
-
-                    ds = gdal.Open(polygonRast)
-                    polyReadArray = (np.array(ds.GetRasterBand(1).ReadAsArray()))
-                    ds = None
-
-                    corRedBand = np.where(polyReadArray==255,255,redReadArray)
-                    corGreenBand = np.where(polyReadArray==255,0,greenReadArray)
-                    corBlueBand = np.where(polyReadArray==255,0,blueReadArray)
-
-                    listOutArray = [corRedBand,corGreenBand,corBlueBand]
-
-                    correctedClipped = subImgPath+'CorrectedClipped.tif'
-
-                    ds = gdal.Open(outputFile)
-                    refArray = (np.array(ds.GetRasterBand(1).ReadAsArray()))
-                    refimg = ds
-                    arrayshape = refArray.shape
-                    x_pixels = arrayshape[1]
-                    y_pixels = arrayshape[0]
-                    print(x_pixels, y_pixels)
-                    GeoT = refimg.GetGeoTransform()
-                    Projection = osr.SpatialReference()
-                    Projection.ImportFromWkt(refimg.GetProjectionRef())
-                    driver = gdal.GetDriverByName('GTIFF')
-                    numBands = len(listOutArray)
-                    print(numBands)
-                    dataset = driver.Create(correctedClipped, x_pixels, y_pixels, numBands, gdal.GDT_Float32)
-                    dataset.SetGeoTransform(GeoT)
-                    dataset.SetProjection(Projection.ExportToWkt())
-                    counter = 1
-                    for array in listOutArray:
-                        dataset.GetRasterBand(counter).WriteArray(array)
-                        counter += 1
-                    dataset.FlushCache()
-                    dataset=None
-                    ds = None
-                    refImg = None
-
-
-                    # outputFile = subImgPath + "WaterBodyImg_{0}-{1}_{2}_Buff.tif".format(xSub, ySub, feature.id())
-                    # print(outputFile)
-
-                    # processing.run("gdal:cliprasterbymasklayer",
-                    #                {'INPUT': imageName,
-                    #                 'MASK': buffLyr, 'SOURCE_CRS': int(espgCode),
-                    #                 'TARGET_CRS': QgsCoordinateReferenceSystem('EPSG:4326'), 'NODATA': -9999,
-                    #                 'ALPHA_BAND': False, 'CROP_TO_CUTLINE': True, 'KEEP_RESOLUTION': False,
-                    #                 'SET_RESOLUTION': False, 'X_RESOLUTION': None, 'Y_RESOLUTION': None,
-                    #                 'MULTITHREADING': False, 'OPTIONS': '', 'DATA_TYPE': 0,
-                    #                 'OUTPUT': outputFile})
-
-                    print("Clip")
-
-                    #### Zip the File ####
-
-                    zipPWD = os.getcwd()
-                    os.chdir(subImgPath)
-
-                    print(espgCode)
-                    ReProjImg = resample(correctedClipped,espgCode)
-                    print("Resampled:")
-                    print(ReProjImg)
-
-                    outJPEG = subImgPath + "WaterBodyImg_{0}-{1}_{2}_BB.jpg".format(xSub,ySub,feature.id())
-
-                    #### Convert to jpg ####
-
-                    processing.run("gdal:translate", {
-                        'INPUT': ReProjImg,
-                        'TARGET_CRS': None, 'NODATA': None, 'COPY_SUBDATASETS': False,
-                        'OPTIONS': 'COMPRESS=DEFLATE|PREDICTOR=2|ZLEVEL=9', 'DATA_TYPE': 1,
-                        'OUTPUT': outJPEG})
-
-                    os.remove(outputFile)
-                    os.remove(tmpVecFile)
-                    os.remove(tmpLineFile)
-                    os.remove(polygonRast)
-                    os.remove(tmpBuffVec)
-                    os.remove(tmpBuffVecReproj)
-
-                    del redReadArray
-                    del greenReadArray
-                    del blueReadArray
-                    del corRedBand
-                    del corGreenBand
-                    del corBlueBand
-                    del listOutArray
-
-                    # options_list = [
-                    #     '-ot Byte',
-                    #     '-of JPEG'
-                    # ]
-                    # options_string = " ".join(options_list)
-                    #
-                    # osgeo.gdal.Translate(outJPEG,clippedImg, options=options_string)
-
-                    listTif = glob.glob("*.tif")
-                    for tif in listTif:
-                        os.remove(tif)
-
-                    listXml = glob.glob("*.xml")
-                    for xml in listXml:
-                        os.remove(xml)
-                    os.chdir(zipPWD)
-
-
-
-
-                shpLayerLabelled = outShp.replace(".shp","_Sources.geojson")
-
-                QgsVectorFileWriter.writeAsVectorFormat(shpLayer, shpLayerLabelled, 'System',
-                                                        QgsCoordinateReferenceSystem(4326),
-                                                        'GEOJSON')
-
-
-                print("Clip Has Been Completed...")
-
-
-                outShp = shpLayerLabelled
-
-
-                print(outShp)
-                print(outVecJSCleanLabel)
-
-                outMerged = outShp.replace('_Sources.geojson','_Extent-Sources.geojson')
-
-                processing.run("native:mergevectorlayers", {
-                    'LAYERS': [outVecJSCleanLabel,outShp,],'CRS': QgsCoordinateReferenceSystem('EPSG:4326'), 'OUTPUT': outMerged})
-
-                outMergedSingle = outMerged.replace(".geojson", "_Single.geojson")
-
-                processing.run("native:multiparttosingleparts",
-                               {'INPUT': outMerged,
-                                'OUTPUT': outMergedSingle})
-
-
-                mergedLyr = QgsVectorLayer(outMergedSingle)
-                mergedLyr.dataProvider().deleteAttributes([2, 3])
-                mergedLyr.updateFields()
-
-                mergedLyrSingleTmp = outputDir+saveFile+'_Extent-SourcesTmp.geojson'
-                QgsVectorFileWriter.writeAsVectorFormat(mergedLyr, mergedLyrSingleTmp, 'System',
-                                                        QgsCoordinateReferenceSystem(4326),
-                                                        'GEOJSON')
-
-                mergedLyrSingle = outputDir + saveFile + '_Extent-Sources.geojson'
-                processing.run("native:snappointstogrid", {
-                    'INPUT': mergedLyrSingleTmp,
-                    'HSPACING': 1e-06, 'VSPACING': 1e-06, 'ZSPACING': 0, 'MSPACING': 0,
-                    'OUTPUT': mergedLyrSingle})
-
-                os.remove(mergedLyrSingleTmp)
-
-                # shutil.move(outMergedSingle, outputDir)
-
-                pwd = os.getcwd()
-                os.chdir(outputDir)
-                zipf = zipfile.ZipFile('SubImg.zip', 'w', zipfile.ZIP_DEFLATED)
-                zipdir('Sub-Imgs/', zipf)
-                zipf.close()
-                os.chdir(pwd)
-
-
-
-                if os.path.isdir(workspace) == True:
-                    shutil.rmtree(workspace)
-
-                if os.path.isdir(scratch) == True:
-                    shutil.rmtree(scratch)
-                    print()
-
-
-                listremFiles = glob.glob('{0}*'.format(saveFile))
-
-                for file in listremFiles:
-                    try:
-                        os.remove(file)
-                    except:
-                        print()
-
-                # src = gdal.Open(imageName)
-                # ulx, xres, xskew, uly, yskew, yres = src.GetGeoTransform()
-                # Cx = ulx + ((src.RasterXSize / 2) * xres)
-                # Cy = uly + ((src.RasterYSize / 2) * yres)
-                # print(Cx)
-                # print(Cy)
-                # espgCode = convert_wgs_to_utm(Cx, Cy)
-                # print(espgCode)
-                # src = None
-
-                #QgsVectorFileWriter.writeAsVectorFormat(shpLayer, outKML, "utf-8", driverName= "KML")
-
-
-                print(os.getcwd())
-
-                rmFile = glob.glob("*UTM.tif")
-                print(rmFile)
-                for file in rmFile:
-                    os.remove(file)
-
-                rmFile = glob.glob("*.geojson")
-                print(rmFile)
-                for file in rmFile:
-                    os.remove(file)
-
-        else:
-
-
+        if os.path.isdir(workspace) == True:
+            shutil.rmtree(workspace)
+
+        if os.path.isdir(scratch) == True:
+            shutil.rmtree(scratch)
             print()
-
-            if os.path.isdir(workspace) == True:
-                shutil.rmtree(workspace)
-
-            if os.path.isdir(scratch) == True:
-                shutil.rmtree(scratch)
-                print()
 
 
         self.dlg.start.setEnabled(True)
@@ -1577,6 +667,17 @@ class RegionGrower:
         filename = imageName.split('/')[-1]
         outDir = imageName.replace(filename,'')
 
+        #### Generate a Colour Ramp for Classified Output Diplay ####
+
+        global colourRamp
+
+        colourRamp = []
+
+        for i in range(0,256):
+
+            colourRamp.append('%d, %d, %d' % (randrange(0, 256), randrange(0, 256), randrange(0, 256)))
+
+
 
         #### Get ESPGCODE for UTM ####
 
@@ -1626,9 +727,6 @@ class RegionGrower:
             resVec = QgsVectorLayer(resVecF)
             QgsProject.instance().addMapLayer(resVec)
 
-
-
-
         #### One time convert the image from 3 band rgb to 3band lab ####
 
         filename = imageName.split('/')[-1]
@@ -1641,10 +739,7 @@ class RegionGrower:
 
             os.mkdir(workspace)
 
-
-
         outputfileName = '{0}{1}'.format(workspace,filename.replace('.tif','_LAB.tif'))
-
 
         bands =[]
         for x in range(1, 4):
@@ -1682,13 +777,13 @@ class RegionGrower:
         self.point_tool = NewMapTool(iface.mapCanvas())
         iface.mapCanvas().setMapTool(self.point_tool)
 
-
-
-
         self.point_tool.canvasClicked[float,float].connect(self.getPointsandDigitise)
 
     # the one custom slot function needs to accept the QgsPointXY the signal emits
     def getPointsandDigitise(self,x,y):
+
+        global colourRamp
+
         QApplication.setOverrideCursor(Qt.WaitCursor)
         QApplication.processEvents()
         print("Cursor Command Sent")
@@ -1718,6 +813,12 @@ class RegionGrower:
 
             saveFile = self.dlg.outVec.text()
             saveFile = outDir + saveFile + '.shp'
+
+            temp = QgsVectorLayer("polygon?crs=epsg:{0}".format(espgCode), "Data", "memory")
+            QgsVectorFileWriter.writeAsVectorFormat(temp, saveFile, 'System', QgsCoordinateReferenceSystem(espgCode),
+                                                    'ESRI Shapefile', bool(True))
+            temp = None
+
         else:
             saveFile = self.dlg.fileShp.text()
             print("Resuming")
@@ -1725,9 +826,6 @@ class RegionGrower:
         print(self.dlg.fileShp.text())
         print(saveFile)
         filename = imageName.split('/')[-1]
-
-
-
 
         scratchPath = imageName.replace(filename, '')
         workspacePath = imageName.replace(filename, '')
@@ -1741,18 +839,12 @@ class RegionGrower:
         if os.path.isdir(workspace) == False:
             os.mkdir(workspace)
 
-
-
         scratch = scratchPath
         scratch = '{0}tmp/'.format(scratch)
-
-
 
         if os.path.isdir(scratch) == False:
 
             os.mkdir(scratch)
-
-
 
         print(imageName)
         print(neighbourhood)
@@ -1763,15 +855,8 @@ class RegionGrower:
 
         #### Create Blank Shapefile ####
 
-        temp = QgsVectorLayer("polygon?crs=epsg:{0}".format(espgCode), "Data", "memory")
-        newLayer = QgsVectorFileWriter.writeAsVectorFormat(temp,saveFile,'System', QgsCoordinateReferenceSystem(espgCode),'ESRI Shapefile', bool(True))
-        temp = None
-
-        # processes(imageName, vals, neighbourhood, threshold,saveFile,scratch,workspace,espgCode)
-
         location = vals
         outVec = saveFile
-
 
         print("Processing...")
         print(outVec)
@@ -1898,6 +983,8 @@ class RegionGrower:
         processing.run("gdal:polygonize", {'INPUT': rastLayer, 'BAND': 1, 'FIELD': 'DN', 'EIGHT_CONNECTEDNESS': False,
                                            'OUTPUT': tmpVec})
 
+
+
         processingVec = tmpVec
 
         processingVecInt = tmpVec.replace('.shp', '_int.shp')
@@ -1956,21 +1043,41 @@ class RegionGrower:
         tLayer = QgsVectorLayer(processingVecInt)
         processingVecIntBuff = processingVecInt.replace('.shp', '_Buff.shp')
 
+
+        try:
+            bufferDistance = float(self.dlg.bufferDistance.text())
+        except:
+            bufferDistance = 0
+
+
         if self.dlg.trainingData.isChecked() == True:
             processing.run("native:buffer",
-                           {'INPUT': tLayer, 'DISTANCE': -0.05,
+                           {'INPUT': tLayer, 'DISTANCE': bufferDistance,
                             'SEGMENTS': 5, 'END_CAP_STYLE': 0, 'JOIN_STYLE': 0, 'MITER_LIMIT': 2, 'DISSOLVE': True,
                             'OUTPUT': processingVecIntBuff})
 
 
         else:
             processing.run("native:buffer",
-                           {'INPUT': tLayer, 'DISTANCE': 0.5,
+                           {'INPUT': tLayer, 'DISTANCE': -0.05,
                             'SEGMENTS': 5, 'END_CAP_STYLE': 0, 'JOIN_STYLE': 0, 'MITER_LIMIT': 2, 'DISSOLVE': True,
                             'OUTPUT': processingVecIntBuff})
 
         # reply = QMessageBox.question(self.iface.mainWindow(), 'Continue?',
         #                              'Do you want to digitise this feature?', QMessageBox.Yes, QMessageBox.No)
+
+        vLayer = QgsVectorLayer(processingVecIntBuff)
+        vLayer.dataProvider().addAttributes([QgsField('Class', QVariant.Int)])
+        vLayer.updateFields()
+
+        with edit(vLayer):
+            for feature in vLayer.getFeatures():
+                feature['Class'] = int(self.dlg.classValue.text())
+                vLayer.updateFeature(feature)
+
+        QgsVectorFileWriter.writeAsVectorFormat(vLayer, processingVecIntBuff, 'System',
+                                                QgsCoordinateReferenceSystem(espgCode),
+                                                'ESRI Shapefile', bool(True))
 
         print("Write Merged Vector")
         print("ESPG Code: {0}".format(espgCode))
@@ -1979,6 +1086,15 @@ class RegionGrower:
                        {'LAYERS': [processingVecIntBuff, outVec],
                         'CRS': QgsCoordinateReferenceSystem('EPSG: {0}'.format(espgCode)),
                         'OUTPUT': outVec})
+
+        layer = None
+        fields = [0,2,3]
+        layer = QgsVectorLayer(outVec)
+        layer.dataProvider().deleteAttributes(fields)
+        layer.updateFields()
+        QgsVectorFileWriter.writeAsVectorFormat(layer, outVec, 'System',
+                                                QgsCoordinateReferenceSystem(espgCode),
+                                                'ESRI Shapefile', bool(True))
 
         layer = None
         layer = QgsVectorLayer(outVec)
@@ -1991,8 +1107,39 @@ class RegionGrower:
             QgsProject.instance().removeMapLayers([activeLayer.id()])
 
         vLayer = QgsVectorLayer(outVec)
-        vLayer.renderer().symbol().setColor(QColor("blue"))
+        values = vLayer.dataProvider().fields().indexFromName('Class')
+
+        uniqueValues = vLayer.dataProvider().uniqueValues(values)
+
+        categories = []
+        for unique_value in uniqueValues:
+            # initialize the default symbol for this geometry type
+            symbol = QgsSymbol.defaultSymbol(vLayer.geometryType())
+
+            # configure a symbol layer
+            layer_style = {}
+            layer_style['color'] = colourRamp[unique_value]
+            layer_style['outline'] = '#000000'
+            symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
+
+            # replace default symbol layer with the configured one
+            if symbol_layer is not None:
+                symbol.changeSymbolLayer(0, symbol_layer)
+
+            # create renderer object
+            category = QgsRendererCategory(unique_value, symbol, str(unique_value))
+            # entry for the list of category items
+            categories.append(category)
+
+        # create renderer object
+        renderer = QgsCategorizedSymbolRenderer('Class', categories)
+
+        # assign the created renderer to the layer
+        if renderer is not None:
+            vLayer.setRenderer(renderer)
+
         vLayer.triggerRepaint()
+
         QgsProject.instance().addMapLayer(vLayer)
 
         shutil.rmtree(scratch)
