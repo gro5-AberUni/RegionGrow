@@ -6,9 +6,9 @@
 name=Region Grower
 qgisMinimumVersion=3.0
 description=Grows Regions
-version=0.1
+version=2.0
 author=Greg Oakes
-email=gro3@aber.ac.uk
+email=gro5@aber.ac.uk
 
 about=Provide a brief description of the plugin and its purpose.
 
