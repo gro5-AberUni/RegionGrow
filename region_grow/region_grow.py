@@ -51,7 +51,6 @@ import scipy
 from scipy import spatial
 import glob
 from osgeo import osr
-from gdal import ogr
 import shutil
 import sys
 import math
