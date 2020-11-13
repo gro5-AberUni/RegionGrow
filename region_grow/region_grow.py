@@ -421,9 +421,9 @@ class RegionGrower:
 
         self.dlg.shpFind.clicked.connect(self.getShp)
 
-        self.dlg.resume.clicked.connect(self.start)
+        # self.dlg.resume.clicked.connect(self.start)
 
-        self.dlg.pause.clicked.connect(self.pause)
+        # self.dlg.pause.clicked.connect(self.pause)
 
         # self.dlg.exec_()
 
@@ -491,7 +491,7 @@ class RegionGrower:
 
 
         self.dlg.start.setEnabled(True)
-        self.dlg.resume.setEnabled(True)
+        # self.dlg.resume.setEnabled(True)
         self.dlg.fileDisplay.setText('')
         self.dlg.nbhood.setText('')
         self.dlg.thresh.setText('')
@@ -507,13 +507,26 @@ class RegionGrower:
 
         imageName = self.dlg.fileDisplay.text()
         saveFile = self.dlg.outVec.text()
-
+        saveFileExt =self.dlg.fileShp.text()
 
         filename = imageName.split('/')[-1]
 
-        outDir = imageName.replace(filename, '')
+        print('Safe File',saveFile)
+        print('External File',saveFileExt)
 
-        outShp = outDir + saveFile + '.shp'
+
+        if saveFile != '':
+
+            outDir = imageName.replace(filename, '')
+
+            outShp = outDir + saveFile + '.shp'
+
+        else:
+
+            outShp = saveFileExt
+
+
+        print(outShp)
 
         undoLyr = QgsVectorLayer(outShp)
 
@@ -538,14 +551,46 @@ class RegionGrower:
         if activeLayer.type() == QgsMapLayer.VectorLayer:
             QgsProject.instance().removeMapLayers([activeLayer.id()])
 
-        undoLyr.renderer().symbol().setColor(QColor("blue"))
+        values = undoLyr.dataProvider().fields().indexFromName('Class')
+
+        uniqueValues = undoLyr.dataProvider().uniqueValues(values)
+
+        categories = []
+        for unique_value in uniqueValues:
+            # initialize the default symbol for this geometry type
+            symbol = QgsSymbol.defaultSymbol(undoLyr.geometryType())
+
+            # configure a symbol layer
+            layer_style = {}
+            layer_style['color'] = colourRamp[unique_value]
+            layer_style['outline'] = '#000000'
+            symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
+
+            # replace default symbol layer with the configured one
+            if symbol_layer is not None:
+                symbol.changeSymbolLayer(0, symbol_layer)
+
+            # create renderer object
+            category = QgsRendererCategory(unique_value, symbol, str(unique_value))
+            # entry for the list of category items
+            categories.append(category)
+
+        # create renderer object
+        renderer = QgsCategorizedSymbolRenderer('Class', categories)
+
+        # assign the created renderer to the layer
+        if renderer is not None:
+            undoLyr.setRenderer(renderer)
+
         undoLyr.triggerRepaint()
+
         QgsProject.instance().addMapLayer(undoLyr)
+
 
     def start(self):
 
         self.dlg.start.setEnabled(False)
-        self.dlg.resume.setEnabled(False)
+        # self.dlg.resume.setEnabled(False)
 
         iface.messageBar().pushMessage("Region Grower Plugin", "Preparing Datasets...", level=Qgis.Info,
                                        duration=10)
@@ -617,7 +662,42 @@ class RegionGrower:
         if self.dlg.fileShp.text() != '':
             resVecF = self.dlg.fileShp.text()
             resVec = QgsVectorLayer(resVecF)
+
+            values = resVec.dataProvider().fields().indexFromName('Class')
+
+            uniqueValues = resVec.dataProvider().uniqueValues(values)
+
+            categories = []
+            for unique_value in uniqueValues:
+                # initialize the default symbol for this geometry type
+                symbol = QgsSymbol.defaultSymbol(resVec.geometryType())
+
+                # configure a symbol layer
+                layer_style = {}
+                layer_style['color'] = colourRamp[unique_value]
+                layer_style['outline'] = '#000000'
+                symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
+
+                # replace default symbol layer with the configured one
+                if symbol_layer is not None:
+                    symbol.changeSymbolLayer(0, symbol_layer)
+
+                # create renderer object
+                category = QgsRendererCategory(unique_value, symbol, str(unique_value))
+                # entry for the list of category items
+                categories.append(category)
+
+            # create renderer object
+            renderer = QgsCategorizedSymbolRenderer('Class', categories)
+
+            # assign the created renderer to the layer
+            if renderer is not None:
+                resVec.setRenderer(renderer)
+
+            resVec.triggerRepaint()
+
             QgsProject.instance().addMapLayer(resVec)
+
 
         #### One time convert the image from 3 band rgb to 3band lab ####
 
@@ -832,6 +912,8 @@ class RegionGrower:
         power2 = np.power(var2, 2)
         length = np.add(power1, power2)
         spatialDist = np.sqrt(length)
+        spatialDist = np.sqrt(spatialDist)
+        # array2raster(workspace + 'SpatialDist.tif', rasterorigin, rtnX, rtnY, [spatialDist], espgCode) #DEV
 
         candiatePixelsRed = candiatePixels[:, :, 0]
 
@@ -847,10 +929,10 @@ class RegionGrower:
         length = np.add(power1, np.add(power2, power3))
 
         colorDist = np.sqrt(length)
-        spatialDist = np.sqrt(spatialDist)
+
 
         # array2raster(workspace+'ColourDist.tif', rasterorigin, rtnX, rtnY, [colorDist], espgCode) # DEV
-        # array2raster(workspace + 'SpatialDist.tif', rasterorigin, rtnX, rtnY, [spatialDist], espgCode) #DEV
+
 
         totalDistanceGrid = np.add(spatialDist, colorDist)
 
@@ -987,13 +1069,31 @@ class RegionGrower:
                                                 QgsCoordinateReferenceSystem(espgCode),
                                                 'ESRI Shapefile', bool(True))
 
+
+        outVecTmp = outVec.replace('.shp','_tmp.shp')
+
+
         print("Write Merged Vector")
         print("ESPG Code: {0}".format(espgCode))
         print('EPSG: {0}'.format(espgCode))
         processing.run("native:mergevectorlayers",
                        {'LAYERS': [processingVecIntBuff, outVec],
                         'CRS': QgsCoordinateReferenceSystem('EPSG: {0}'.format(espgCode)),
-                        'OUTPUT': outVec})
+                        'OUTPUT': outVecTmp})
+
+        print(outDir)
+
+        listFilesToDel = glob.glob('{0}/{1}.*'.format(outDir,self.dlg.outVec.text()))
+
+        print('{0}.*'.format(outVec))
+        print(listFilesToDel)
+        for file in listFilesToDel:
+            os.remove(file)
+
+        listRenameFiles = glob.glob('{0}/{1}_tmp.*'.format(outDir,self.dlg.outVec.text()))
+
+        for file in listRenameFiles:
+            os.rename(file,file.replace('_tmp',''))
 
         layer = None
         fields = [0,2,3]
@@ -1003,11 +1103,6 @@ class RegionGrower:
         QgsVectorFileWriter.writeAsVectorFormat(layer, outVec, 'System',
                                                 QgsCoordinateReferenceSystem(espgCode),
                                                 'ESRI Shapefile', bool(True))
-
-        layer = None
-        layer = QgsVectorLayer(outVec)
-        outVecJS = outVec.replace(".shp", "")
-        QgsVectorFileWriter.writeAsVectorFormat(layer, outVecJS, "utf-8", driverName="GeoJSON")
 
         layers = iface.mapCanvas().layers()
         activeLayer = iface.activeLayer()
@@ -1050,7 +1145,7 @@ class RegionGrower:
 
         QgsProject.instance().addMapLayer(vLayer)
 
-        shutil.rmtree(scratch)
+        # shutil.rmtree(scratch) DEV
 
         print("Complete")
 
@@ -1063,18 +1158,18 @@ class RegionGrower:
 
         # iface.mapCanvas().setMapTool(self.point_tool)
 
-    def pause(self):
-
-        self.dlg.start.setEnabled(True)
-        self.dlg.resume.setEnabled(True)
-        self.dlg.fileDisplay.setText('')
-        self.dlg.nbhood.setText('')
-        self.dlg.thresh.setText('')
-        self.dlg.outVec.setText('')
-
-        iface.actionPan().trigger()
-
-        self.dlg.close()
+    # def pause(self):
+    #
+    #     self.dlg.start.setEnabled(True)
+    #     # self.dlg.resume.setEnabled(True)
+    #     self.dlg.fileDisplay.setText('')
+    #     self.dlg.nbhood.setText('')
+    #     self.dlg.thresh.setText('')
+    #     self.dlg.outVec.setText('')
+    #
+    #     iface.actionPan().trigger()
+    #
+    #     self.dlg.close()
 
 
 
