@@ -57,6 +57,7 @@ import math
 import zipfile
 import glob
 import time
+import json
 
 from random import randrange
 
@@ -380,7 +381,6 @@ class RegionGrower:
 
         # will be set False in run()
 
-
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
@@ -519,7 +519,7 @@ class RegionGrower:
 
             outDir = imageName.replace(filename, '')
 
-            outShp = outDir + saveFile + '.shp'
+            outShp = outDir + saveFile + '.geojson'
 
         else:
 
@@ -528,29 +528,26 @@ class RegionGrower:
 
         print(outShp)
 
-        undoLyr = QgsVectorLayer(outShp)
+        with open(outShp) as r:
+            mergeData = json.load(r)
+        r.close()
 
-        listFtrs = []
+        currentFeatures = mergeData.get('features')
 
-        for ftr in undoLyr.getFeatures():
-            listFtrs.append(ftr.id())
+        del currentFeatures[-1]
 
+        mergeData['features'] = currentFeatures
 
-        with edit(undoLyr):
-
-            listFtrs.sort(reverse=True)
-            print(listFtrs)
-            ftrID = listFtrs[-1]
-            print(ftrID)
-            undoLyr.dataProvider().deleteFeatures([ftrID, ftrID])
-
-        print(listFtrs)
+        with open(outShp, 'w') as k:
+            json.dump(mergeData, k)
+        k.close()
 
         layers = iface.mapCanvas().layers()
         activeLayer = iface.activeLayer()
         if activeLayer.type() == QgsMapLayer.VectorLayer:
             QgsProject.instance().removeMapLayers([activeLayer.id()])
 
+        undoLyr = QgsVectorLayer(outShp)
         values = undoLyr.dataProvider().fields().indexFromName('Class')
 
         uniqueValues = undoLyr.dataProvider().uniqueValues(values)
@@ -585,7 +582,6 @@ class RegionGrower:
         undoLyr.triggerRepaint()
 
         QgsProject.instance().addMapLayer(undoLyr)
-
 
     def start(self):
 
@@ -784,19 +780,31 @@ class RegionGrower:
         if self.dlg.fileShp.text() == '':
 
             saveFile = self.dlg.outVec.text()
-            saveFile = outDir + saveFile + '.shp'
+            saveFile = outDir + saveFile
+            print('Save File: ',saveFile)
+            if os.path.exists(saveFile+'.geojson') != True:
 
-            temp = QgsVectorLayer("polygon?crs=epsg:{0}".format(espgCode), "Data", "memory")
-            QgsVectorFileWriter.writeAsVectorFormat(temp, saveFile, 'System', QgsCoordinateReferenceSystem(espgCode),
-                                                    'ESRI Shapefile', bool(True))
-            temp = None
+                temp = QgsVectorLayer("polygon?crs=epsg:{0}".format(espgCode), "Data", "memory")
+                QgsVectorFileWriter.writeAsVectorFormat(temp, saveFile, 'System',
+                                                                   QgsCoordinateReferenceSystem(espgCode), 'GeoJSON',
+                                                                   bool(True))
+
+                temp = None
+
+                outVec = saveFile + '.geojson'
+            else:
+                outVec = outDir + self.dlg.outVec.text()+'.geojson'
 
         else:
             saveFile = self.dlg.fileShp.text()
+
+            outVec = saveFile
             print("Resuming")
 
         print(self.dlg.fileShp.text())
         print(saveFile)
+
+
         filename = imageName.split('/')[-1]
 
         scratchPath = imageName.replace(filename, '')
@@ -828,10 +836,10 @@ class RegionGrower:
         #### Create Blank Shapefile ####
 
         location = vals
-        outVec = saveFile
+
 
         print("Processing...")
-        print(outVec)
+
         kxyMap = location
         file = imageName
         # print(file)
@@ -973,8 +981,6 @@ class RegionGrower:
         processing.run("gdal:polygonize", {'INPUT': rastLayer, 'BAND': 1, 'FIELD': 'DN', 'EIGHT_CONNECTEDNESS': False,
                                            'OUTPUT': tmpVec})
 
-
-
         processingVec = tmpVec
 
         processingVecInt = tmpVec.replace('.shp', '_int.shp')
@@ -1031,7 +1037,7 @@ class RegionGrower:
         #
 
         tLayer = QgsVectorLayer(processingVecInt)
-        processingVecIntBuff = processingVecInt.replace('.shp', '_Buff.shp')
+        processingVecIntBuff = processingVecInt.replace('.shp', '_Buff.geojson')
 
 
         try:
@@ -1065,44 +1071,36 @@ class RegionGrower:
                 feature['Class'] = int(self.dlg.classValue.text())
                 vLayer.updateFeature(feature)
 
-        QgsVectorFileWriter.writeAsVectorFormat(vLayer, processingVecIntBuff, 'System',
-                                                QgsCoordinateReferenceSystem(espgCode),
-                                                'ESRI Shapefile', bool(True))
+        vLayer=None
 
+        print(outVec)
 
-        outVecTmp = outVec.replace('.shp','_tmp.shp')
+        with open(processingVecIntBuff) as f:
+            buffData = json.load(f)
+        f.close()
 
+        featuresToMerge = buffData.get('features')
 
-        print("Write Merged Vector")
-        print("ESPG Code: {0}".format(espgCode))
-        print('EPSG: {0}'.format(espgCode))
-        processing.run("native:mergevectorlayers",
-                       {'LAYERS': [processingVecIntBuff, outVec],
-                        'CRS': QgsCoordinateReferenceSystem('EPSG: {0}'.format(espgCode)),
-                        'OUTPUT': outVecTmp})
+        featuresToMerge[0]['properties'].pop('DN')
 
-        print(outDir)
+        with open(outVec) as r:
+            mergeData = json.load(r)
+        r.close()
 
-        listFilesToDel = glob.glob('{0}/{1}.*'.format(outDir,self.dlg.outVec.text()))
+        currentFeatures = mergeData.get('features')
 
-        print('{0}.*'.format(outVec))
-        print(listFilesToDel)
-        for file in listFilesToDel:
-            os.remove(file)
+        if len(currentFeatures) == 0:
+            mergeData['features'] = featuresToMerge
+        else:
+            newFeaturesList = currentFeatures+featuresToMerge
+            mergeData['features'] = newFeaturesList
 
-        listRenameFiles = glob.glob('{0}/{1}_tmp.*'.format(outDir,self.dlg.outVec.text()))
-
-        for file in listRenameFiles:
-            os.rename(file,file.replace('_tmp',''))
+        with open(outVec, 'w') as k:
+            json.dump(mergeData, k)
+        k.close()
 
         layer = None
-        fields = [0,2,3]
-        layer = QgsVectorLayer(outVec)
-        layer.dataProvider().deleteAttributes(fields)
-        layer.updateFields()
-        QgsVectorFileWriter.writeAsVectorFormat(layer, outVec, 'System',
-                                                QgsCoordinateReferenceSystem(espgCode),
-                                                'ESRI Shapefile', bool(True))
+
 
         layers = iface.mapCanvas().layers()
         activeLayer = iface.activeLayer()
@@ -1145,7 +1143,7 @@ class RegionGrower:
 
         QgsProject.instance().addMapLayer(vLayer)
 
-        # shutil.rmtree(scratch) DEV
+        shutil.rmtree(scratch)
 
         print("Complete")
 
@@ -1156,20 +1154,8 @@ class RegionGrower:
         iface.messageBar().pushMessage("Region Grower Plugin", "Process Successful", level=Qgis.Success,
                                        duration=1)
 
-        # iface.mapCanvas().setMapTool(self.point_tool)
+        iface.mapCanvas().setMapTool(self.point_tool)
 
-    # def pause(self):
-    #
-    #     self.dlg.start.setEnabled(True)
-    #     # self.dlg.resume.setEnabled(True)
-    #     self.dlg.fileDisplay.setText('')
-    #     self.dlg.nbhood.setText('')
-    #     self.dlg.thresh.setText('')
-    #     self.dlg.outVec.setText('')
-    #
-    #     iface.actionPan().trigger()
-    #
-    #     self.dlg.close()
 
 
 
