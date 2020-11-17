@@ -1,8 +1,7 @@
 # RegionGrow
-Qgis Region Growing Plugin
+The Region Growing Plugin.
 
 Gregory Oakes. 2020
-
 Aberystwyth University
 
 Installation Instructions for MacOS, Linux and Windows:
@@ -26,7 +25,7 @@ https://www.scipy.org/install.html
 
 If you use this plugin please cite:
 
-Oakes, Gregory (2020). The QGIS Region Growing Plugin. 
+Oakes, Gregory (2020). The Region Growing Plugin for QGIS.  
 
 
 
