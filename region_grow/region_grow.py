@@ -1134,7 +1134,11 @@ class RegionGrower:
 
         QgsProject.instance().addMapLayer(vLayer)
 
-        shutil.rmtree(scratch)
+        from sys import platform
+        if platform == "linux" or platform == "linux2" or platform == "darwin":
+            shutil.rmtree(scratch)
+
+
 
         print("Complete")
 
