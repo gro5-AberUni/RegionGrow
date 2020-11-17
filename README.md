@@ -1,6 +1,8 @@
 # RegionGrow
 Qgis Region Growing Plugin
+
 Gregory Oakes. 2020
+
 Aberystwyth University
 
 Installation Instructions for MacOS, Linux and Windows:
