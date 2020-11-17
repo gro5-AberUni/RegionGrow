@@ -1062,16 +1062,6 @@ class RegionGrower:
         # reply = QMessageBox.question(self.iface.mainWindow(), 'Continue?',
         #                              'Do you want to digitise this feature?', QMessageBox.Yes, QMessageBox.No)
 
-        vLayer = QgsVectorLayer(processingVecIntBuff)
-        vLayer.dataProvider().addAttributes([QgsField('Class', QVariant.Int)])
-        vLayer.updateFields()
-
-        with edit(vLayer):
-            for feature in vLayer.getFeatures():
-                feature['Class'] = int(self.dlg.classValue.text())
-                vLayer.updateFeature(feature)
-
-        vLayer=None
 
         print(outVec)
 
@@ -1081,6 +1071,7 @@ class RegionGrower:
 
         featuresToMerge = buffData.get('features')
 
+        featuresToMerge[0]['properties']['Class'] = int(self.dlg.classValue.text())
         featuresToMerge[0]['properties'].pop('DN')
 
         with open(outVec) as r:
