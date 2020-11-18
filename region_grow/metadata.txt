@@ -3,17 +3,17 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=Region Grower
+name=The Region Growing Plugin
 qgisMinimumVersion=3.0
-description=Grows Regions
-version=2.0
+description=Selects like colour pixels and digitises them into a vector feature.
+version=3.1
 author=Greg Oakes
 email=gro5@aber.ac.uk
 
-about=Provide a brief description of the plugin and its purpose.
+about=The purpose of this plugin is to allow for the easy generation of classification training data from an RGB drone image. The plugin allows a user to click a location within the imagery and similarly coloured pixels will be selected and digitised into a new feature in a training dataset, with a class value and label added to each feature.
 
-tracker=http://bugs
-repository=http://repo
+tracker=https://github.com/gro5-AberUni/RegionGrow
+repository=https://github.com/gro5-AberUni/RegionGrow
 # End of mandatory metadata
 
 # Recommended items:
@@ -25,7 +25,7 @@ hasProcessingProvider=no
 # Tags are comma separated with spaces allowed
 tags=python
 
-homepage=http://homepage
+homepage=https://github.com/gro5-AberUni/RegionGrow
 category=Plugins
 icon=icon.png
 # experimental flag

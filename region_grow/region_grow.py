@@ -463,6 +463,8 @@ class RegionGrower:
 
         #### Copy outVec GeoJson for ZZap ###
 
+        global espgCode
+
         imageName = self.dlg.fileDisplay.text()
         saveFile = self.dlg.outVec.text()
 
@@ -477,10 +479,48 @@ class RegionGrower:
         workspace = workspacePath
         workspace = '{0}Workspace/'.format(workspace)
 
+        if self.dlg.outVec.text() != '':
+
+            print("OutVec")
+
+            #### User Defined File, Need to Copy To an Output Desired ####
+
+            if str(self.dlg.shpExt.currentText()) == 'Shapefile':
+
+                print("Convert To Shape")
+
+                #### Need to Convert to Shp ####
+
+                outputName = outDir+ saveFile+'.shp'
+
+                print(outputName)
+
+                outLayer = QgsVectorLayer(outDir+saveFile+'.geojson')
+
+                print(outLayer)
+
+                QgsVectorFileWriter.writeAsVectorFormat(outLayer, outputName, "UTF-8",driverName = "ESRI Shapefile")
+
+                print("Saved TO SHP")
+
+        else:
+
+            print("Using Exisitng File")
+
+            existingExt = str(self.dlg.fileShp.text()).split('.')[-1]
+
+            outName = str(self.dlg.fileShp.text()).split('.')[0]+'_Modified.'+existingExt
+
+            outLayer = QgsVectorLayer(str(self.dlg.fileShp.text()).split('.')[0]+'.geojson')
+
+            QgsVectorFileWriter.writeAsVectorFormat(outLayer, outName, "UTF-8", driverName="ESRI Shapefile")
+
+
+
+                #### Else No Issues. File Already GeoJSON ####
+
         if os.path.isdir(scratch) == False:
             os.mkdir(scratch)
-
-        print(imageName)
 
         if os.path.isdir(workspace) == True:
             shutil.rmtree(workspace)
@@ -488,6 +528,8 @@ class RegionGrower:
         if os.path.isdir(scratch) == True:
             shutil.rmtree(scratch)
             print()
+
+
 
 
         self.dlg.start.setEnabled(True)
@@ -657,6 +699,9 @@ class RegionGrower:
 
         if self.dlg.fileShp.text() != '':
             resVecF = self.dlg.fileShp.text()
+
+
+
             resVec = QgsVectorLayer(resVecF)
 
             values = resVec.dataProvider().fields().indexFromName('Class')
@@ -751,6 +796,7 @@ class RegionGrower:
     def getPointsandDigitise(self,x,y):
 
         global colourRamp
+        global espgCode
 
         QApplication.setOverrideCursor(Qt.WaitCursor)
         QApplication.processEvents()
@@ -784,6 +830,9 @@ class RegionGrower:
             print('Save File: ',saveFile)
             if os.path.exists(saveFile+'.geojson') != True:
 
+                print("Building New GeoJSON")
+
+
                 temp = QgsVectorLayer("polygon?crs=epsg:{0}".format(espgCode), "Data", "memory")
                 QgsVectorFileWriter.writeAsVectorFormat(temp, saveFile, 'System',
                                                                    QgsCoordinateReferenceSystem(espgCode), 'GeoJSON',
@@ -798,7 +847,31 @@ class RegionGrower:
         else:
             saveFile = self.dlg.fileShp.text()
 
-            outVec = saveFile
+            print(saveFile)
+
+            #### Perform Check to see if file is GeoJSON ####
+
+            if saveFile.split('.')[-1] == 'shp':
+                #### Create GeoJSON file for processing ####
+
+                outVec = saveFile.replace('shp','geojson')
+
+                if os.path.exists(outVec) != True:
+
+                    print(outVec)
+
+                    readlayer = self.dlg.fileShp.text()
+
+                    outLayer = QgsVectorLayer(readlayer)
+
+                    print(outLayer)
+
+                    for feature in outLayer.getFeatures():
+                        print(feature)
+
+                    QgsVectorFileWriter.writeAsVectorFormat(outLayer, outVec, 'UTF-8',
+                                                            QgsCoordinateReferenceSystem(espgCode), 'GeoJSON')
+
             print("Resuming")
 
         print(self.dlg.fileShp.text())
@@ -1080,11 +1153,16 @@ class RegionGrower:
 
         currentFeatures = mergeData.get('features')
 
+        print(len(currentFeatures))
+
+
         if len(currentFeatures) == 0:
             mergeData['features'] = featuresToMerge
         else:
             newFeaturesList = currentFeatures+featuresToMerge
             mergeData['features'] = newFeaturesList
+
+        print(len(currentFeatures))
 
         with open(outVec, 'w') as k:
             json.dump(mergeData, k)
@@ -1137,7 +1215,6 @@ class RegionGrower:
         from sys import platform
         if platform == "linux" or platform == "linux2" or platform == "darwin":
             shutil.rmtree(scratch)
-
 
 
         print("Complete")
