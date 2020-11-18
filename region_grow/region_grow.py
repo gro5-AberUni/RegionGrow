@@ -58,6 +58,7 @@ import zipfile
 import glob
 import time
 import json
+from sys import platform
 
 from random import randrange
 
@@ -625,9 +626,8 @@ class RegionGrower:
         if os.path.isdir(workspace) == True:
             shutil.rmtree(workspace)
 
-        if os.path.isdir(scratch) == True:
+        if platform == "linux" or platform == "linux2" or platform == "darwin":
             shutil.rmtree(scratch)
-
 
         layers = iface.mapCanvas().layers()
         activeLayer = iface.activeLayer()
@@ -1377,7 +1377,7 @@ class RegionGrower:
 
         QgsProject.instance().addMapLayer(vLayer)
 
-        from sys import platform
+
         if platform == "linux" or platform == "linux2" or platform == "darwin":
             shutil.rmtree(scratch)
 
