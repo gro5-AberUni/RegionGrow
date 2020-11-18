@@ -479,6 +479,11 @@ class RegionGrower:
         workspace = workspacePath
         workspace = '{0}Workspace/'.format(workspace)
 
+        if os.path.isdir(scratch) == False:
+            os.mkdir(scratch)
+
+        #### New Files Being Created ####
+
         if self.dlg.outVec.text() != '':
 
             print("OutVec")
@@ -486,6 +491,23 @@ class RegionGrower:
             #### User Defined File, Need to Copy To an Output Desired ####
 
             if str(self.dlg.shpExt.currentText()) == 'Shapefile':
+
+                #### Perform Dissolve based on Class ####
+
+                digitisedLayer = outDir+saveFile+'.geojson'
+
+                dissolvedLayer = scratch+saveFile+'_Dissolved.geojson'
+
+                processing.run("native:dissolve",
+                               {'INPUT': digitisedLayer,
+                                'FIELD': ['Class'], 'OUTPUT': dissolvedLayer})
+
+                multipartLayer = scratch+saveFile+'_Multipart.geojson'
+
+                processing.run("native:multiparttosingleparts", {
+                    'INPUT': dissolvedLayer,
+                    'OUTPUT': multipartLayer})
+
 
                 print("Convert To Shape")
 
@@ -495,7 +517,7 @@ class RegionGrower:
 
                 print(outputName)
 
-                outLayer = QgsVectorLayer(outDir+saveFile+'.geojson')
+                outLayer = QgsVectorLayer(multipartLayer)
 
                 print(outLayer)
 
@@ -503,31 +525,150 @@ class RegionGrower:
 
                 print("Saved TO SHP")
 
+            else:
+
+                digitisedLayer = outDir+saveFile+'.geojson'
+
+                dissolvedLayer = scratch+saveFile+'_Dissolved.geojson'
+
+                processing.run("native:dissolve",
+                               {'INPUT': digitisedLayer,
+                                'FIELD': ['Class'], 'OUTPUT': dissolvedLayer})
+
+                multipartLayer = scratch+saveFile+'_Multipart.geojson'
+
+                processing.run("native:multiparttosingleparts", {
+                    'INPUT': dissolvedLayer,
+                    'OUTPUT': multipartLayer})
+
+                with open(digitisedLayer) as r:
+                    existingData = json.load(r)
+                r.close()
+
+                with open(multipartLayer) as r:
+                    newData = json.load(r)
+                r.close()
+
+                newFeatures = newData.get('features')
+
+                print(type(newFeatures))
+
+                existingData['features'] = newFeatures
+
+                print(type(existingData))
+
+                with open(digitisedLayer, 'w') as k:
+                    json.dump(existingData, k)
+                k.close()
+
+                layer = None
+
+                outputName = digitisedLayer
+
         else:
 
             print("Using Exisitng File")
 
             existingExt = str(self.dlg.fileShp.text()).split('.')[-1]
 
-            outName = str(self.dlg.fileShp.text()).split('.')[0]+'_Modified.'+existingExt
+            if existingExt == 'geojson':
 
-            outLayer = QgsVectorLayer(str(self.dlg.fileShp.text()).split('.')[0]+'.geojson')
+                outputName = str(self.dlg.fileShp.text()).split('.')[0]+'_Modified.'+existingExt
 
-            QgsVectorFileWriter.writeAsVectorFormat(outLayer, outName, "UTF-8", driverName="ESRI Shapefile")
+                digitisedLayer = QgsVectorLayer(str(self.dlg.fileShp.text()).split('.')[0]+'.geojson')
 
+                dissolvedLayer = scratch+'Dissolved.geojson'
 
+                processing.run("native:dissolve",
+                               {'INPUT': digitisedLayer,
+                                'FIELD': ['Class'], 'OUTPUT': dissolvedLayer})
 
-                #### Else No Issues. File Already GeoJSON ####
+                multipartLayer = scratch+'Multipart.geojson'
 
-        if os.path.isdir(scratch) == False:
-            os.mkdir(scratch)
+                processing.run("native:multiparttosingleparts", {
+                    'INPUT': dissolvedLayer,
+                    'OUTPUT': multipartLayer})
+
+                outLayer = QgsVectorLayer(multipartLayer)
+
+                QgsVectorFileWriter.writeAsVectorFormat(outLayer, outputName, "System", driverName="GeoJSON")
+
+            else:
+
+                outputName = str(self.dlg.fileShp.text()).split('.')[0] + '_Modified.' + existingExt
+
+                if os.path.exists(str(self.dlg.fileShp.text()).split('.')[0] + '.geojson') == True:
+
+                    digitisedLayer = QgsVectorLayer(str(self.dlg.fileShp.text()).split('.')[0] + '.geojson')
+
+                else:
+
+                    digitisedLayer = QgsVectorLayer(str(self.dlg.fileShp.text()).split('.')[0] + '.shp')
+
+                dissolvedLayer = scratch + 'Dissolved.geojson'
+
+                processing.run("native:dissolve",
+                               {'INPUT': digitisedLayer,
+                                'FIELD': ['Class'], 'OUTPUT': dissolvedLayer})
+
+                multipartLayer = scratch + 'Multipart.geojson'
+
+                processing.run("native:multiparttosingleparts", {
+                    'INPUT': dissolvedLayer,
+                    'OUTPUT': multipartLayer})
+
+                outLayer = QgsVectorLayer(multipartLayer)
+
+                QgsVectorFileWriter.writeAsVectorFormat(outLayer, outputName, "UTF-8",driverName = "ESRI Shapefile")
+
 
         if os.path.isdir(workspace) == True:
             shutil.rmtree(workspace)
 
         if os.path.isdir(scratch) == True:
             shutil.rmtree(scratch)
-            print()
+
+
+        layers = iface.mapCanvas().layers()
+        activeLayer = iface.activeLayer()
+        if activeLayer.type() == QgsMapLayer.VectorLayer:
+            QgsProject.instance().removeMapLayers([activeLayer.id()])
+
+        vLayer = QgsVectorLayer(outputName)
+        values = vLayer.dataProvider().fields().indexFromName('Class')
+
+        uniqueValues = vLayer.dataProvider().uniqueValues(values)
+
+        categories = []
+        for unique_value in uniqueValues:
+            # initialize the default symbol for this geometry type
+            symbol = QgsSymbol.defaultSymbol(vLayer.geometryType())
+
+            # configure a symbol layer
+            layer_style = {}
+            layer_style['color'] = colourRamp[unique_value]
+            layer_style['outline'] = '#000000'
+            symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
+
+            # replace default symbol layer with the configured one
+            if symbol_layer is not None:
+                symbol.changeSymbolLayer(0, symbol_layer)
+
+            # create renderer object
+            category = QgsRendererCategory(unique_value, symbol, str(unique_value))
+            # entry for the list of category items
+            categories.append(category)
+
+        # create renderer object
+        renderer = QgsCategorizedSymbolRenderer('Class', categories)
+
+        # assign the created renderer to the layer
+        if renderer is not None:
+            vLayer.setRenderer(renderer)
+
+        vLayer.triggerRepaint()
+
+        QgsProject.instance().addMapLayer(vLayer)
 
 
 
@@ -556,74 +697,80 @@ class RegionGrower:
         print('Safe File',saveFile)
         print('External File',saveFileExt)
 
+        try:
 
-        if saveFile != '':
+            if saveFile != '':
 
-            outDir = imageName.replace(filename, '')
+                outDir = imageName.replace(filename, '')
 
-            outShp = outDir + saveFile + '.geojson'
+                outShp = outDir + saveFile + '.geojson'
 
-        else:
+            else:
 
-            outShp = saveFileExt
+                if str(self.dlg.fileShp.text()).split('.')[-1] == 'shp':
+                    outShp = str(self.dlg.fileShp.text()).split('.')[0]+'.geojson'
 
+            print(outShp)
 
-        print(outShp)
+            with open(outShp) as r:
+                mergeData = json.load(r)
+            r.close()
 
-        with open(outShp) as r:
-            mergeData = json.load(r)
-        r.close()
+            currentFeatures = mergeData.get('features')
 
-        currentFeatures = mergeData.get('features')
+            del currentFeatures[-1]
 
-        del currentFeatures[-1]
+            mergeData['features'] = currentFeatures
 
-        mergeData['features'] = currentFeatures
+            with open(outShp, 'w') as k:
+                json.dump(mergeData, k)
+            k.close()
 
-        with open(outShp, 'w') as k:
-            json.dump(mergeData, k)
-        k.close()
+            layers = iface.mapCanvas().layers()
+            activeLayer = iface.activeLayer()
+            if activeLayer.type() == QgsMapLayer.VectorLayer:
+                QgsProject.instance().removeMapLayers([activeLayer.id()])
 
-        layers = iface.mapCanvas().layers()
-        activeLayer = iface.activeLayer()
-        if activeLayer.type() == QgsMapLayer.VectorLayer:
-            QgsProject.instance().removeMapLayers([activeLayer.id()])
+            undoLyr = QgsVectorLayer(outShp)
+            values = undoLyr.dataProvider().fields().indexFromName('Class')
 
-        undoLyr = QgsVectorLayer(outShp)
-        values = undoLyr.dataProvider().fields().indexFromName('Class')
+            uniqueValues = undoLyr.dataProvider().uniqueValues(values)
 
-        uniqueValues = undoLyr.dataProvider().uniqueValues(values)
+            categories = []
+            for unique_value in uniqueValues:
+                # initialize the default symbol for this geometry type
+                symbol = QgsSymbol.defaultSymbol(undoLyr.geometryType())
 
-        categories = []
-        for unique_value in uniqueValues:
-            # initialize the default symbol for this geometry type
-            symbol = QgsSymbol.defaultSymbol(undoLyr.geometryType())
+                # configure a symbol layer
+                layer_style = {}
+                layer_style['color'] = colourRamp[unique_value]
+                layer_style['outline'] = '#000000'
+                symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
 
-            # configure a symbol layer
-            layer_style = {}
-            layer_style['color'] = colourRamp[unique_value]
-            layer_style['outline'] = '#000000'
-            symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
+                # replace default symbol layer with the configured one
+                if symbol_layer is not None:
+                    symbol.changeSymbolLayer(0, symbol_layer)
 
-            # replace default symbol layer with the configured one
-            if symbol_layer is not None:
-                symbol.changeSymbolLayer(0, symbol_layer)
+                # create renderer object
+                category = QgsRendererCategory(unique_value, symbol, str(unique_value))
+                # entry for the list of category items
+                categories.append(category)
 
             # create renderer object
-            category = QgsRendererCategory(unique_value, symbol, str(unique_value))
-            # entry for the list of category items
-            categories.append(category)
+            renderer = QgsCategorizedSymbolRenderer('Class', categories)
 
-        # create renderer object
-        renderer = QgsCategorizedSymbolRenderer('Class', categories)
+            # assign the created renderer to the layer
+            if renderer is not None:
+                undoLyr.setRenderer(renderer)
 
-        # assign the created renderer to the layer
-        if renderer is not None:
-            undoLyr.setRenderer(renderer)
+            undoLyr.triggerRepaint()
 
-        undoLyr.triggerRepaint()
+            QgsProject.instance().addMapLayer(undoLyr)
 
-        QgsProject.instance().addMapLayer(undoLyr)
+        except:
+
+            iface.messageBar().pushMessage("Region Grower Plugin", "You Havent Created Any New Features", level=Qgis.Critical,
+                                           duration=2)
 
     def start(self):
 
@@ -871,6 +1018,10 @@ class RegionGrower:
 
                     QgsVectorFileWriter.writeAsVectorFormat(outLayer, outVec, 'UTF-8',
                                                             QgsCoordinateReferenceSystem(espgCode), 'GeoJSON')
+
+            else:
+
+                outVec = self.dlg.fileShp.text()
 
             print("Resuming")
 
@@ -1135,10 +1286,24 @@ class RegionGrower:
         # reply = QMessageBox.question(self.iface.mainWindow(), 'Continue?',
         #                              'Do you want to digitise this feature?', QMessageBox.Yes, QMessageBox.No)
 
+        #### Fill Holes pxlSize*4 ####
+
+        holeAreaSize = rtnX*4
+        processingVecIntBuffFill=processingVecIntBuff.replace('.geojson','_FillHoles.geojson')
+
+        processing.run("native:deleteholes",
+                       {'INPUT': processingVecIntBuff, 'MIN_AREA': holeAreaSize,
+                        'OUTPUT': processingVecIntBuffFill})
+
+        processingVecIntBuffFillFix = processingVecIntBuff.replace('.geojson', '_Fix.geojson')
+
+        processing.run("native:fixgeometries",
+                       {'INPUT': processingVecIntBuffFill,
+                        'OUTPUT': processingVecIntBuffFillFix})
 
         print(outVec)
 
-        with open(processingVecIntBuff) as f:
+        with open(processingVecIntBuffFillFix) as f:
             buffData = json.load(f)
         f.close()
 
