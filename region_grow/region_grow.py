@@ -474,7 +474,6 @@ class RegionGrower:
 
         # self.dlg.fileShp.text() # Selected File
 
-
         #### Determine if Using a new File of an Existing File is being used ####
 
         if self.dlg.outVec.text() != '':
@@ -663,8 +662,6 @@ class RegionGrower:
 
         self.dlg.close()
 
-        # QApplication.quit()
-
     def undo(self):
 
         imageName = self.dlg.fileDisplay.text()
@@ -712,28 +709,25 @@ class RegionGrower:
 
             categories = []
             for unique_value in uniqueValues:
-                # initialize the default symbol for this geometry type
+
                 symbol = QgsSymbol.defaultSymbol(undoLyr.geometryType())
 
-                # configure a symbol layer
+
                 layer_style = {}
                 layer_style['color'] = colourRamp[unique_value]
                 layer_style['outline'] = '#000000'
                 symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
 
-                # replace default symbol layer with the configured one
                 if symbol_layer is not None:
                     symbol.changeSymbolLayer(0, symbol_layer)
 
-                # create renderer object
+
                 category = QgsRendererCategory(unique_value, symbol, str(unique_value))
-                # entry for the list of category items
+
                 categories.append(category)
 
-            # create renderer object
             renderer = QgsCategorizedSymbolRenderer('Class', categories)
 
-            # assign the created renderer to the layer
             if renderer is not None:
                 undoLyr.setRenderer(renderer)
 
@@ -749,19 +743,14 @@ class RegionGrower:
     def start(self):
 
         self.dlg.start.setEnabled(False)
-        # self.dlg.resume.setEnabled(False)
+
 
         iface.messageBar().pushMessage("Region Grower Plugin", "Preparing Datasets...", level=Qgis.Info,
                                        duration=2)
 
         imageName = self.dlg.fileDisplay.text()
-        neighbourhood = self.dlg.nbhood.text()
-        threshold = self.dlg.thresh.text()
-
-        saveFile = self.dlg.outVec.text()
 
         filename = imageName.split('/')[-1]
-        outDir = imageName.replace(filename,'')
 
         #### Generate a Colour Ramp for Classified Output Diplay ####
 
@@ -823,28 +812,23 @@ class RegionGrower:
 
             categories = []
             for unique_value in uniqueValues:
-                # initialize the default symbol for this geometry type
+
                 symbol = QgsSymbol.defaultSymbol(resVec.geometryType())
 
-                # configure a symbol layer
                 layer_style = {}
                 layer_style['color'] = colourRamp[unique_value]
                 layer_style['outline'] = '#000000'
                 symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
 
-                # replace default symbol layer with the configured one
                 if symbol_layer is not None:
                     symbol.changeSymbolLayer(0, symbol_layer)
 
-                # create renderer object
                 category = QgsRendererCategory(unique_value, symbol, str(unique_value))
-                # entry for the list of category items
+
                 categories.append(category)
 
-            # create renderer object
             renderer = QgsCategorizedSymbolRenderer('Class', categories)
 
-            # assign the created renderer to the layer
             if renderer is not None:
                 resVec.setRenderer(renderer)
 
@@ -896,18 +880,36 @@ class RegionGrower:
 
         vals = (x,y)
 
+        neighbourhood = int(self.dlg.nbhood.text())
+        threshold = int(self.dlg.thresh.text())
+
         imageName = self.dlg.fileDisplay.text()
 
         filename = imageName.split('/')[-1]
-        workspacePath = imageName.replace(filename, '')
-        workspace = workspacePath
-        workspace = '{0}Workspace/'.format(workspace)
+
         outDir = imageName.replace(filename, '')
         imageName=imageName.replace('.tif','_LAB.tif')
 
+        filename = imageName.split('/')[-1]
 
-        neighbourhood = int(self.dlg.nbhood.text())
-        threshold = int(self.dlg.thresh.text())
+        scratchPath = imageName.replace(filename, '')
+        workspacePath = imageName.replace(filename, '')
+        workspace = workspacePath
+        workspace = '{0}Workspace/'.format(workspace)
+
+        labImage = workspace + filename
+
+        if os.path.isdir(workspace) == False:
+            os.mkdir(workspace)
+
+        scratch = scratchPath
+        scratch = '{0}tmp/'.format(scratch)
+
+        if os.path.isdir(scratch) == False:
+            os.mkdir(scratch)
+
+        kxyMap = vals
+
 
         if self.dlg.outVec.text() != '':
             newFile = True
@@ -967,29 +969,7 @@ class RegionGrower:
 
             print("Resuming")
 
-        filename = imageName.split('/')[-1]
-
-        scratchPath = imageName.replace(filename, '')
-        workspacePath = imageName.replace(filename, '')
-        workspace = workspacePath
-        workspace = '{0}Workspace/'.format(workspace)
-
-        imageName = workspace + filename
-
-        if os.path.isdir(workspace) == False:
-            os.mkdir(workspace)
-
-        scratch = scratchPath
-        scratch = '{0}tmp/'.format(scratch)
-
-        if os.path.isdir(scratch) == False:
-
-            os.mkdir(scratch)
-
-        kxyMap = vals
-        file = imageName
-
-        src = gdal.Open(file)
+        src = gdal.Open(labImage)
         geoTrans = src.GetGeoTransform()
 
         kxy = geoFindIndex(geoTrans, kxyMap[0], kxyMap[1])
@@ -1011,7 +991,7 @@ class RegionGrower:
         bands = []
 
         for x in range(1, 4):
-            ds = gdal.Open(file)
+            ds = gdal.Open(labImage)
             bandArray = np.array(ds.GetRasterBand(x).ReadAsArray())
             bands.append(bandArray)
             ds = None
@@ -1094,8 +1074,6 @@ class RegionGrower:
         processing.run("gdal:polygonize", {'INPUT': rastLayer, 'BAND': 1, 'FIELD': 'DN', 'EIGHT_CONNECTEDNESS': False,
                                            'OUTPUT': tmpVec})
 
-        processingVec = tmpVec
-
         processingVecInt = tmpVec.replace('.geojson', '_int.geojson')
 
         layer = QgsVectorLayer(tmpVec, "tmp Layer", 'ogr')
@@ -1121,23 +1099,15 @@ class RegionGrower:
         while fit.nextFeature(feat):
             spIndex.insertFeature(feat)
 
-        pt = QgsPointXY(vals[0], vals[1])
-
         nearestIds = spIndex.intersects(rec)
 
         featureId = nearestIds[0]
-        fit2 = layer.getFeatures(QgsFeatureRequest().setFilterFid(featureId))
-
-        ftr = QgsFeature()
-
 
         layer.select(featureId)
-
 
         QgsVectorFileWriter.writeAsVectorFormat(layer, processingVecInt, 'System',
                                                 QgsCoordinateReferenceSystem(espgCode),
                                                 'GeoJSON', bool(True))
-
 
         tLayer = QgsVectorLayer(processingVecInt)
         processingVecIntBuff = processingVecInt.replace('.geojson', '_Buff.geojson')
