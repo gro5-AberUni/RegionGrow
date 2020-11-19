@@ -6,7 +6,7 @@
 name=The Region Growing Plugin
 qgisMinimumVersion=3.0
 description=Selects like colour pixels and digitises them into a vector feature.
-version=3.1
+version=3.2
 author=Greg Oakes
 email=gro5@aber.ac.uk
 
