@@ -662,6 +662,8 @@ class RegionGrower:
 
         self.dlg.close()
 
+
+
     def undo(self):
 
         imageName = self.dlg.fileDisplay.text()
@@ -1044,7 +1046,7 @@ class RegionGrower:
         outRast = '{0}TempRast.tif'.format(scratch)
         tmpVec = '{0}TempVec.geojson'.format(scratch)
 
-        src = gdal.Open(file)
+        src = gdal.Open(labImage)
         geoTrans = src.GetGeoTransform()
         rtnX = geoTrans[1]
         rtnY = geoTrans[5]
