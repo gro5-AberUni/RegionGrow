@@ -17,11 +17,7 @@ In the plugins dialog box click install from zip and select the region_grow.zip 
 
 Dependencies:
 
-This plugin requires you to have SciPy installed.
-Windows versions of QGIS included scipy.
-
-For MacOS and Linux Users install SciPy into your base environment using the instructions found here:
-https://www.scipy.org/install.html
+This Plugin has no dependencies which are not already installed as part of QGIS.
 
 If you use this plugin please cite:
 
