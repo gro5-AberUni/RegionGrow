@@ -608,13 +608,20 @@ class RegionGrower:
         if os.path.isdir(workspace) == True:
             shutil.rmtree(workspace)
 
-        if platform == "linux" or platform == "linux2" or platform == "darwin":
-            shutil.rmtree(scratch)
+        QgsProject.removeAll()
 
-        layers = iface.mapCanvas().layers()
-        activeLayer = iface.activeLayer()
-        if activeLayer.type() == QgsMapLayer.VectorLayer:
-            QgsProject.instance().removeMapLayers([activeLayer.id()])
+        # layers = iface.mapCanvas().layers()
+        # activeLayer = iface.activeLayer()
+        # if activeLayer.type() == QgsMapLayer.VectorLayer:
+        #     QgsProject.instance().removeMapLayers([activeLayer.id()])
+
+
+        # if platform == "linux" or platform == "linux2" or platform == "darwin":
+        shutil.rmtree(scratch)
+
+        imageName = imageName.replace('.tif', '_UTM.tif')
+        rasterLyr = QgsRasterLayer(imageName, "Data")
+        QgsProject.instance().addMapLayer(rasterLyr)
 
         vLayer = QgsVectorLayer(outputName)
         values = vLayer.dataProvider().fields().indexFromName('Class')
@@ -661,8 +668,6 @@ class RegionGrower:
         iface.actionPan().trigger()
 
         self.dlg.close()
-
-
 
     def undo(self):
 
