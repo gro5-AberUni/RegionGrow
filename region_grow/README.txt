@@ -1,32 +1,23 @@
-Plugin Builder Results
+The Region Growing Plugin.
 
-Your plugin RegionGrower was created in:
-    /Users/gregoakes/.qgis2/python/plugins/region_grow
+Gregory Oakes. 2020
+Aberystwyth University
 
-Your QGIS plugin directory is located at:
-    /Users/gregoakes/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins
+Installation Instructions for MacOS, Linux and Windows:
 
-What's Next:
+To Install the QGIS Plugin, click code and download ZIP. 
+Extract this zip file into you computer and you should see 2 directories:
 
-  * Copy the entire directory containing your new plugin to the QGIS plugin
-    directory
+1. region_grow
+2. region_grow.zip
 
-  * Compile the resources file using pyrcc5
+Open QGIS and click Plugins > Manage and Install Plugins.
+In the plugins dialog box click install from zip and select the region_grow.zip file you have extracted from the RegionGrow-main directory.
 
-  * Run the tests (``make test``)
+Dependencies:
 
-  * Test the plugin by enabling it in the QGIS plugin manager
+This Plugin has no dependencies which are not already installed as part of QGIS.
 
-  * Customize it by editing the implementation file: ``region_grow.py``
+If you use this plugin please cite:
 
-  * Create your own custom icon, replacing the default icon.png
-
-  * Modify your user interface by opening RegionGrower_dialog_base.ui in Qt Designer
-
-  * You can use the Makefile to compile your Ui and resource files when
-    you make changes. This requires GNU make (gmake)
-
-For more information, see the PyQGIS Developer Cookbook at:
-http://www.qgis.org/pyqgis-cookbook/index.html
-
-(C) 2011-2018 GeoApt LLC - geoapt.com
+Oakes, Gregory (2020). The Region Growing Plugin for QGIS.  
