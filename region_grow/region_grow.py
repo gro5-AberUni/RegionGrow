@@ -57,7 +57,7 @@ import glob
 import time
 import json
 from sys import platform
-
+import tempfile
 from random import randrange
 
 def getPxlLAB(x,y,imageArray):
@@ -455,16 +455,20 @@ class RegionGrower:
         filename = imageName.split('/')[-1]
         outDir = imageName.replace(filename,'')
 
-        scratchPath = imageName.replace(filename, '')
-        scratch = scratchPath
-        scratch = '{0}tmp/'.format(scratch)
+        # scratchPath = imageName.replace(filename, '')
+        # scratch = scratchPath
+        # scratch = '{0}tmp/'.format(scratch)
+        #
+        # if os.path.isdir(scratch) == False:
+        #     os.mkdir(scratch)
+
+        finishTemp = tempfile.mkdtemp()
 
         workspacePath = imageName.replace(filename, '')
         workspace = workspacePath
         workspace = '{0}Workspace/'.format(workspace)
 
-        if os.path.isdir(scratch) == False:
-            os.mkdir(scratch)
+
 
         #### Dialog Boxes For Reference ####
 
@@ -490,13 +494,13 @@ class RegionGrower:
 
                 digitisedLayer = outDir+saveFile+'.geojson'
 
-                dissolvedLayer = scratch+saveFile+'_Dissolved.geojson'
+                dissolvedLayer = finishTemp+saveFile+'_Dissolved.geojson'
 
                 processing.run("native:dissolve",
                                {'INPUT': digitisedLayer,
                                 'FIELD': ['Class'], 'OUTPUT': dissolvedLayer})
 
-                multipartLayer = scratch+saveFile+'_Multipart.geojson'
+                multipartLayer = finishTemp+saveFile+'_Multipart.geojson'
 
                 processing.run("native:multiparttosingleparts", {
                     'INPUT': dissolvedLayer,
@@ -517,13 +521,13 @@ class RegionGrower:
 
                 digitisedLayer = outDir+saveFile+'.geojson'
 
-                dissolvedLayer = scratch+saveFile+'_Dissolved.geojson'
+                dissolvedLayer = finishTemp+saveFile+'_Dissolved.geojson'
 
                 processing.run("native:dissolve",
                                {'INPUT': digitisedLayer,
                                 'FIELD': ['Class'], 'OUTPUT': dissolvedLayer})
 
-                multipartLayer = scratch+saveFile+'_Multipart.geojson'
+                multipartLayer = finishTemp+saveFile+'_Multipart.geojson'
 
                 processing.run("native:multiparttosingleparts", {
                     'INPUT': dissolvedLayer,
@@ -561,13 +565,13 @@ class RegionGrower:
 
                 digitisedLayer = QgsVectorLayer(str(self.dlg.fileShp.text()).split('.')[0]+'.geojson')
 
-                dissolvedLayer = scratch+'Dissolved.geojson'
+                dissolvedLayer = finishTemp+'Dissolved.geojson'
 
                 processing.run("native:dissolve",
                                {'INPUT': digitisedLayer,
                                 'FIELD': ['Class'], 'OUTPUT': dissolvedLayer})
 
-                multipartLayer = scratch+'Multipart.geojson'
+                multipartLayer = finishTemp+'Multipart.geojson'
 
                 processing.run("native:multiparttosingleparts", {
                     'INPUT': dissolvedLayer,
@@ -589,13 +593,13 @@ class RegionGrower:
 
                     digitisedLayer = QgsVectorLayer(str(self.dlg.fileShp.text()).split('.')[0] + '.shp')
 
-                dissolvedLayer = scratch + 'Dissolved.geojson'
+                dissolvedLayer = finishTemp + 'Dissolved.geojson'
 
                 processing.run("native:dissolve",
                                {'INPUT': digitisedLayer,
                                 'FIELD': ['Class'], 'OUTPUT': dissolvedLayer})
 
-                multipartLayer = scratch + 'Multipart.geojson'
+                multipartLayer = finishTemp + 'Multipart.geojson'
 
                 processing.run("native:multiparttosingleparts", {
                     'INPUT': dissolvedLayer,
@@ -608,20 +612,12 @@ class RegionGrower:
         if os.path.isdir(workspace) == True:
             shutil.rmtree(workspace)
 
-        QgsProject.removeAll()
+        layers = iface.mapCanvas().layers()
+        activeLayer = iface.activeLayer()
+        if activeLayer.type() == QgsMapLayer.VectorLayer:
+            QgsProject.instance().removeMapLayers([activeLayer.id()])
 
-        # layers = iface.mapCanvas().layers()
-        # activeLayer = iface.activeLayer()
-        # if activeLayer.type() == QgsMapLayer.VectorLayer:
-        #     QgsProject.instance().removeMapLayers([activeLayer.id()])
-
-
-        # if platform == "linux" or platform == "linux2" or platform == "darwin":
-        shutil.rmtree(scratch)
-
-        imageName = imageName.replace('.tif', '_UTM.tif')
-        rasterLyr = QgsRasterLayer(imageName, "Data")
-        QgsProject.instance().addMapLayer(rasterLyr)
+        shutil.rmtree(finishTemp)
 
         vLayer = QgsVectorLayer(outputName)
         values = vLayer.dataProvider().fields().indexFromName('Class')
@@ -899,7 +895,6 @@ class RegionGrower:
 
         filename = imageName.split('/')[-1]
 
-        scratchPath = imageName.replace(filename, '')
         workspacePath = imageName.replace(filename, '')
         workspace = workspacePath
         workspace = '{0}Workspace/'.format(workspace)
@@ -909,11 +904,13 @@ class RegionGrower:
         if os.path.isdir(workspace) == False:
             os.mkdir(workspace)
 
-        scratch = scratchPath
-        scratch = '{0}tmp/'.format(scratch)
+        # scratch = scratchPath
+        # scratch = '{0}tmp/'.format(scratch)
+        #
+        # if os.path.isdir(scratch) == False:
+        #     os.mkdir(scratch)
 
-        if os.path.isdir(scratch) == False:
-            os.mkdir(scratch)
+        digitiseTemp = tempfile.mkdtemp()
 
         kxyMap = vals
 
@@ -1048,8 +1045,8 @@ class RegionGrower:
 
         binaryGrid = np.where(totalDistanceGrid > threshold, np.nan, 1)
 
-        outRast = '{0}TempRast.tif'.format(scratch)
-        tmpVec = '{0}TempVec.geojson'.format(scratch)
+        outRast = '{0}TempRast.tif'.format(digitiseTemp)
+        tmpVec = '{0}TempVec.geojson'.format(digitiseTemp)
 
         src = gdal.Open(labImage)
         geoTrans = src.GetGeoTransform()
@@ -1209,8 +1206,7 @@ class RegionGrower:
             vLayer.setRenderer(renderer)
         vLayer.triggerRepaint()
         QgsProject.instance().addMapLayer(vLayer)
-        if platform == "linux" or platform == "linux2" or platform == "darwin":
-            shutil.rmtree(scratch)
+        shutil.rmtree(digitiseTemp)
 
         QApplication.restoreOverrideCursor()
         QApplication.processEvents()
