@@ -48,7 +48,7 @@ PY_FILES = \
 
 UI_FILES = region_grow_dialog_base.ui
 
-EXTRAS = metadata.txt icon.png
+EXTRAS = metadata.txt icon.png refresh.png footer.png
 
 EXTRA_DIRS =
 

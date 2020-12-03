@@ -2,4 +2,10 @@
     <qresource prefix="/plugins/region_grow" >
         <file>icon.png</file>
     </qresource>
+    <qresource prefix="/plugins/region_grow" >
+        <file>refresh.png</file>
+    </qresource>
+    <qresource prefix="/plugins/region_grow" >
+        <file>footer.png</file>
+    </qresource>
 </RCC>
