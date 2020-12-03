@@ -1,4 +1,4 @@
-# RegionGrow
+# The Region Growing Plugin
 The Region Growing Plugin.
 
 Gregory Oakes. 2020
