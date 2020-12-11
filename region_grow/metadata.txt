@@ -6,7 +6,7 @@
 name=The Region Growing Plugin
 qgisMinimumVersion=3.0
 description=Selects like colour pixels and digitises them into a vector feature.
-version=4.0
+version=4.1
 author=Greg Oakes
 email=gro5@aber.ac.uk
 
@@ -20,7 +20,7 @@ repository=https://github.com/gro5-AberUni/RegionGrow
 
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
-changelog=4.0 Support added for Radar and Multispectral Imagery. 3.3: Improved Temporary File Handling for Windows OS (November 2020). 3.2: Legacy code removed (November 2020). 3.1: User selected vector format change made to UI. Additional bug fixes (November 2020). 3.0: Windows OS Compatible version (November 2020). 2.0 Change of UI to allow for a class value to be used in the vector dataset attribute table (November 2020). 1.0: Removal of SIS specific aspects for general release (November 2020) 0.1: Initial Development for Zanzibar SIS Project (July 2020).
+changelog=4.1 Added Reactivate Point Click Tool button to allow for the plugin to continue after using QGIS Navigation tools. 4.0 Support added for Radar and Multispectral Imagery. 3.3: Improved Temporary File Handling for Windows OS (November 2020). 3.2: Legacy code removed (November 2020). 3.1: User selected vector format change made to UI. Additional bug fixes (November 2020). 3.0: Windows OS Compatible version (November 2020). 2.0 Change of UI to allow for a class value to be used in the vector dataset attribute table (November 2020). 1.0: Removal of SIS specific aspects for general release (November 2020) 0.1: Initial Development for Zanzibar SIS Project (July 2020).
 
 # Tags are comma separated with spaces allowed
 tags=python

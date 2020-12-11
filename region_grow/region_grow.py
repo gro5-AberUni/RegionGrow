@@ -231,7 +231,7 @@ def getUTMZone(lon, lat):
         espgCode = '327' + utm_band
     return espgCode
 
-class NewMapTool(QgsMapToolEmitPoint):
+class mapClickTool(QgsMapToolEmitPoint):
 
     # Define the custom signal this map tool will have
     # Always needs to be implemented as a class attributes like this
@@ -408,6 +408,9 @@ class RegionGrower:
         refreshIcon = QtGui.QPixmap(':/plugins/region_grow/refresh.png')
         self.dlg.refreshButton.setIcon(QtGui.QIcon(refreshIcon))
 
+        clickToolIcon = QtGui.QPixmap(':/plugins/region_grow/clickTool.png')
+        self.dlg.activateMapTool.setIcon(QtGui.QIcon(clickToolIcon))
+
         #### The Script Starts, Now we need the mouse click operations ####
 
         self.dlg.fileFind.clicked.connect(self.getFile)
@@ -431,6 +434,8 @@ class RegionGrower:
         self.dlg.imgTypeRadar.toggled.connect(self.radarImg)
 
         self.dlg.imgTypeDrone.toggled.connect(self.droneImg)
+
+        self.dlg.activateMapTool.clicked.connect(self.activateClickTool)
 
     def repaintRaster(self):
 
@@ -541,6 +546,13 @@ class RegionGrower:
 
             self.dlg.nbhood.setText("500")
             self.dlg.thresh.setText("175")
+
+    def activateClickTool(self):
+
+        self.point_tool = mapClickTool(iface.mapCanvas())
+        iface.mapCanvas().setMapTool(self.point_tool)
+
+        self.point_tool.canvasClicked[float, float].connect(self.getPointsandDigitise)
 
     def radarImg(self):
 
@@ -900,6 +912,7 @@ class RegionGrower:
         self.dlg.start.setEnabled(False)
         self.dlg.finish.setEnabled(True)
         self.dlg.undo.setEnabled(True)
+        self.dlg.activateMapTool.setEnabled(True)
 
         if self.dlg.imgTypeS2.isChecked() or self.dlg.imgTypeLS.isChecked() or self.dlg.imgTypePnt.isChecked():
             self.dlg.refreshButton.setEnabled(True)
@@ -1175,7 +1188,7 @@ class RegionGrower:
             gdalSave(refImg=imageName,listOutArray=listOutArrays,fileName=labFileName,form='GTIFF',rasterTL=None,pxlW=None,pxlH=None,espgCode=None)
 
 
-        self.point_tool = NewMapTool(iface.mapCanvas())
+        self.point_tool = mapClickTool(iface.mapCanvas())
         iface.mapCanvas().setMapTool(self.point_tool)
 
         self.point_tool.canvasClicked[float,float].connect(self.getPointsandDigitise)
