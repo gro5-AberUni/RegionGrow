@@ -23,7 +23,7 @@ This Plugin has no dependencies which are not already installed as part of QGIS.
 
 If you use this plugin please cite:
 
-Oakes, Gregory (2020). The Region Growing Plugin for QGIS.  
+Oakes, Gregory (2020). The Region Growing Plugin (RegionGrow).  
 
 
 
