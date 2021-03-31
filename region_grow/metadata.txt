@@ -3,7 +3,7 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=The Region Growing Plugin
+name=The Region Growing Plugin (RegioGrow)
 qgisMinimumVersion=3.0
 description=Selects like colour pixels and digitises them into a vector feature.
 version=4.1

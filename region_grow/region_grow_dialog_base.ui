@@ -23,7 +23,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>The Region Growing Plugin</string>
+   <string>The Region Growing Plugin (Region Grow)</string>
   </property>
   <property name="autoFillBackground">
    <bool>true</bool>
