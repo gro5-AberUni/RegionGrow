@@ -7,14 +7,14 @@ tags:
     -   GIS
     -   Remote Sensing
 authors:
-    -   name: Gregory Oakes^[Corresponding Author]
+    -   name: Gregory Oakes^[Corresponding author]
         Orcid: 0000-0002-5054-1548
         Affiliation: 1
     -   name: Andy Hardy
         Orchid: 0000-0002-7928-8873
         Affiliation: 1
 affiliations:
-    -   name: Aberystwyth University
+    -   name: Department of Geography and Earth Sciences, Aberystwyth University, Aberystwyth SY23 3DB, UK
         index: 1
 date: 01-04-2021
 bibliography: paper.bib
