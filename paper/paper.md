@@ -1,11 +1,11 @@
 ---
-title: 'The Region Growing Plugin (Region Grow)'
+title: 'The Region Growing Plugin (RegionGrow)'
 tags:
-    -   Python
     -   QGIS
     -   Region Growing
     -   GIS
     -   Remote Sensing
+    -   Python
 authors:
     -   name: Gregory Oakes^[Corresponding author]
         Orcid: 0000-0002-5054-1548
@@ -17,7 +17,7 @@ affiliations:
     -   name: Department of Geography and Earth Sciences, Aberystwyth University, Aberystwyth SY23 3DB, UK
         index: 1
 date: 01-04-2021
-bibliography: paper.bib
+bibliography: references.bib
 ---
 
 # Summary
