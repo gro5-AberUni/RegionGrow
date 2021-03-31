@@ -17,7 +17,7 @@ affiliations:
     -   name: Aberystwyth University
         index: 1
 date: 01-04-2021
-bibliography: paperr.bib
+bibliography: paper.bib
 ---
 
 # Summary
