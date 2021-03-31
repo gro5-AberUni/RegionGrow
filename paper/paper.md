@@ -1,3 +1,4 @@
+---
 title: 'The Region Growing Plugin (Region Grow)'
 tags:
     -   Python
@@ -16,8 +17,8 @@ affiliations:
     -   name: Aberystwyth University
         index: 1
 date: 01-04-2021
-
 bibliography: References.bib
+---
 
 # Summary
 
