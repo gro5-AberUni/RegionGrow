@@ -10,7 +10,7 @@ authors:
     -   name: Gregory Oakes^[Corresponding Author]
         Orcid: 0000-0002-5054-1548
         Affiliation: 1
-    -   Name: Andy Hardy
+    -   name: Andy Hardy
         Orchid: 0000-0002-7928-8873
         Affiliation: 1
 affiliations:
