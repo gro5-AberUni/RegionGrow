@@ -1,0 +1,47 @@
+# This file contains metadata for your plugin.
+
+# This file should be included when you package your plugin.# Mandatory items:
+
+[general]
+name=The Region Growing Plugin
+qgisMinimumVersion=3.0
+description=Selects like colour pixels and digitises them into a vector feature.
+version=4.1
+author=Greg Oakes
+email=gro5@aber.ac.uk
+
+about=The purpose of this plugin is to allow for the easy generation of classification training data from an RGB drone image. The plugin allows a user to click a location within the imagery and similarly coloured pixels will be selected and digitised into a new feature in a training dataset, with a class value and label added to each feature.
+
+tracker=https://github.com/gro5-AberUni/RegionGrow
+repository=https://github.com/gro5-AberUni/RegionGrow
+# End of mandatory metadata
+
+# Recommended items:
+
+hasProcessingProvider=no
+# Uncomment the following line and add your changelog:
+changelog=4.1 Added Reactivate Point Click Tool button to allow for the plugin to continue after using QGIS Navigation tools. 4.0 Support added for Radar and Multispectral Imagery. 3.3: Improved Temporary File Handling for Windows OS (November 2020). 3.2: Legacy code removed (November 2020). 3.1: User selected vector format change made to UI. Additional bug fixes (November 2020). 3.0: Windows OS Compatible version (November 2020). 2.0 Change of UI to allow for a class value to be used in the vector dataset attribute table (November 2020). 1.0: Removal of SIS specific aspects for general release (November 2020) 0.1: Initial Development for Zanzibar SIS Project (July 2020).
+
+# Tags are comma separated with spaces allowed
+tags=python
+
+homepage=https://github.com/gro5-AberUni/RegionGrow
+category=Plugins
+icon=icon.png
+# experimental flag
+experimental=False
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
+# Since QGIS 3.8, a comma separated list of plugins to be installed
+# (or upgraded) can be specified.
+# Check the documentation for more information.
+# plugin_dependencies=
+
+Category of the plugin: Raster, Vector, Database or Web
+# category=
+
+# If the plugin can run on QGIS Server.
+server=False
+
