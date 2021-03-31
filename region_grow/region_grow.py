@@ -411,6 +411,8 @@ class RegionGrower:
         clickToolIcon = QtGui.QPixmap(':/plugins/region_grow/clickTool.png')
         self.dlg.activateMapTool.setIcon(QtGui.QIcon(clickToolIcon))
 
+        self.dlg.label_12.adjustSize()
+
         #### The Script Starts, Now we need the mouse click operations ####
 
         self.dlg.fileFind.clicked.connect(self.getFile)
