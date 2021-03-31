@@ -49,7 +49,7 @@ height="5.369911417322835in"}
 
 # Statement of Need
 
-Within the open source software domain, there is just one region growing tool available from within the Semi-Automatic Classification (SAC) QGIS plugin (Congedo 2019). However, this is intended to be used within the SAC classification workflow and cannot be used intuitively for other digitising needs. 
+Within the open source software domain, there is just one region growing tool available from within the Semi-Automatic Classification (SAC) QGIS plugin [@congedo2016semi]. However, this is intended to be used within the SAC classification workflow and cannot be used intuitively for other digitising needs. 
 
 An independent region growing tool is needed for two primary reasons: 1) Where users wish to collect training data for conducting image classifications outside of the SAC plugin tool, for instance, taking advantage of the most current and robust machine learning solutions from within Python libraries like TPOT or Scikit-Learn. 2) Where users wish to extract thematic information directly rather than following a classification routine. 
 
@@ -80,10 +80,8 @@ units in metres), e.g. Universal Transverse Mercator (UTM).
 Input RGB imagery (typically acquired using commercially available UAV
 platforms) is converted into an *L\*A\*B* colour space, where colour is
 represented by a luminosity channel (*l*), the colour on a red -- green
-axis (*a*) and a blue-yellow axis (*b*) (Rathore, Kumar, and Verma 2012;
-Baldevbhai 2012; Pandey 2017). The LAB colour space can help account for
-the uneven distribution of RGB values within the colour image (Niu et
-al. 2014). Other imagery, i.e. multispectral optical imagery or radar
+axis (*a*) and a blue-yellow axis (*b*) [@rathore2012colour,@baldevbhai2012color,@pandy2017rgblab]. The LAB colour space can help account for
+the uneven distribution of RGB values within the colour image [@niu2014image]. Other imagery, i.e. multispectral optical imagery or radar
 backscatter imagery, do not undergo colour transformation.
 
 ![Figure 2a) Example RGB Drone imagery. b) the same drone imagery converted into an l*a*b* colour space.](Figure2.png){width="3.937007874015748in"
