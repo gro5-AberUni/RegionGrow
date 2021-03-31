@@ -84,7 +84,7 @@ axis (*a*) and a blue-yellow axis (*b*) [@rathore2012colour; @baldevbhai2012colo
 the uneven distribution of RGB values within the colour image [@niu2014image]. Other imagery, i.e. multispectral optical imagery or radar
 backscatter imagery, do not undergo colour transformation.
 
-![Figure 2a) Example RGB Drone imagery. b) The same drone imagery converted into an l\*a\*b* colour space.](Figure2.png){width="3.937007874015748in"
+![Figure 2a) Example RGB Drone imagery. b) The same drone imagery converted into an L\*A\*B* colour space.](Figure2.png){width="3.937007874015748in"
 height="5.369911417322835in"}
 
 An output vector filename is defined by the user before continuing to
