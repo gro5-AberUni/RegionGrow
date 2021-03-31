@@ -1,8 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/region_grow">
-        <file>icon.png</file>
-        <file>refresh.png</file>
-        <file>footer.png</file>
-        <file>clickTool.png</file>
-    </qresource>
-</RCC>
