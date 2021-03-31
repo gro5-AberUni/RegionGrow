@@ -1,4 +1,4 @@
-title:
+title: The Region Growing Plugin (Region Grow)
 tags:
     -   Python
     -   QGIS
