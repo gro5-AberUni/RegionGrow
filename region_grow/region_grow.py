@@ -7,7 +7,7 @@
                               -------------------
         begin                : 2019-07-04
         git sha              : $Format:%H$
-        copyright            : (C) 2019 by Greg Oakes
+        copyright            : (C) 2020 by Greg Oakes
         email                : gro5@aber.ac.uk
  ***************************************************************************/
 
@@ -1236,13 +1236,7 @@ class RegionGrower:
                 processingImage = self.dlg.fileDisplay.text()
 
             scratchPath = imageName.replace(filename, '')
-            # scratch = scratchPath
-            # scratch = '{0}tmp/'.format(scratch)
-            #
-            # if os.path.isdir(scratch) == False:
-            #     os.mkdir(scratch)
-            #
-            # digitiseTemp = scratch
+
 
             digitiseTemp = tempfile.mkdtemp()
 
