@@ -44,14 +44,14 @@ generates connects pixels with a similar colour based on its Euclidean
 distance with a L\*A\*B transformed colour space. This rapidly speeds up
 the manual digitising process and minimises error.
 
-![Figure 1. Overview of the processing steps performed by the the region growing plugin (RegionGrow)](Figure1.png){width="3.937007874015748in"
+![Figure 1. Overview of the processing steps performed by RegionGrow](Figure1.png){width="3.937007874015748in"
 height="5.369911417322835in"}
 
 # Statement of Need
 
 Within the open source software domain, there is just one region growing tool available from within the Semi-Automatic Classification (SAC) QGIS plugin [@congedo2016semi]. However, this is intended to be used within the SAC classification workflow and cannot be used intuitively for other digitising needs. 
 
-An independent region growing tool is needed for two primary reasons: 1) Where users wish to collect training data for conducting image classifications outside of the SAC plugin tool, for instance, taking advantage of the most current and robust machine learning solutions from within Python libraries like TPOT or Scikit-Learn. 2) Where users wish to extract thematic information directly rather than following a classification routine. 
+An independent region growing tool is needed for two primary reasons: 1) Where users wish to collect training data for conducting image classifications outside of the SAC plugin tool, for instance, taking advantage of the most current and robust machine learning solutions from within Python libraries like TPOT [@olson2016tpot] or Scikit-Learn [@pedregosa2011scikit]. 2) Where users wish to extract thematic information directly rather than following a classification routine. 
 
 # Ongoing Projects
 
@@ -80,11 +80,11 @@ units in metres), e.g. Universal Transverse Mercator (UTM).
 Input RGB imagery (typically acquired using commercially available UAV
 platforms) is converted into an *L\*A\*B* colour space, where colour is
 represented by a luminosity channel (*l*), the colour on a red -- green
-axis (*a*) and a blue-yellow axis (*b*) [@rathore2012colour,@baldevbhai2012color,@pandy2017rgblab]. The LAB colour space can help account for
+axis (*a*) and a blue-yellow axis (*b*) [@rathore2012colour; @baldevbhai2012color; @pandy2017rgblab]. The LAB colour space can help account for
 the uneven distribution of RGB values within the colour image [@niu2014image]. Other imagery, i.e. multispectral optical imagery or radar
 backscatter imagery, do not undergo colour transformation.
 
-![Figure 2a) Example RGB Drone imagery. b) the same drone imagery converted into an l*a*b* colour space.](Figure2.png){width="3.937007874015748in"
+![Figure 2a) Example RGB Drone imagery. b) The same drone imagery converted into an l\*a\*b* colour space.](Figure2.png){width="3.937007874015748in"
 height="5.369911417322835in"}
 
 An output vector filename is defined by the user before continuing to
@@ -96,7 +96,7 @@ The user selects/clicks on a point of interest within the image. The
 coordinates of the selected point is retrieved and a square
 neighbourhood created (based on a user defined distance).
 
-![Figure 3a). Location of user click within RGB drone imagery. B) L*A*B* transformed drone imagery and the location of the user clicked location. C) Local neighbourhood around in this case 25m around the user clicked location within the drone imagery. ](Figure3.png){width="3.937007874015748in"
+![Figure 3a). Location of user click within RGB drone imagery. B) L\*A\*B* transformed drone imagery and the location of the user clicked location. C) Local neighbourhood around in this case 25m around the user clicked location within the drone imagery. ](Figure3.png){width="3.937007874015748in"
 height="2.6625in"}
 
 **Step 3.**
@@ -106,13 +106,10 @@ The Euclidean colour distance between each pixel and the selected pixel
 is determined. Pixels with a lower colour distance are considered to be
 of a similar colour.
 
-![Chart, scatter chart Description automatically
-generated](media/image4.png){width="3.937007874015748in"
-height="2.984346019247594in"}
-
-Figure 4. 3D feature space showing pixels within the local area of the
+![Figure 4. 3D feature space showing pixels within the local area of the
 user clicked location. The cross within the plot marks the user clicked
-pixel.
+pixel.](Figure4.png){width="3.937007874015748in"
+height="2.984346019247594in"}
 
 ![Figure 5a) RGB Drone Imagery, b) L\*A\*B\* transformed drone imagery and
 the location of the user clicked location. C) Euclidean distance within
@@ -128,11 +125,11 @@ from the selected pixel have a lower weighting.
 The colour distance and spatial distance are summed and pixels with a
 combined value greater than the user defined threshold are masked out,
 leaving only pixels considered to have a similar enough colour to be
-joined into the same Region.
+joined into the same region.
 
 **Step 5.**
 
-The output Region (pixels of similar colour) are vectorised where they
+The output region (pixels of similar colour) are vectorised where they
 intersect the originally selected pixel, i.e. they must be joined to the
 selected pixel.
 
@@ -140,7 +137,7 @@ selected pixel.
 
 The geometry of this feature is then simplified, broken geometries fixed
 and holes within the feature are filled, and a buffer applied if defined
-by the user. The final Region is committed to an output vector dataset
+by the user. The final region is committed to an output vector dataset
 (e.g. ESRI Shapefile, GeoJSON) as the digitised feature.
 
 ![Figure 6a) Pixels are selected where the colour distance is less than a
@@ -152,7 +149,7 @@ height="3.5722451881014874in"}
 
 # Dependencies
 
-There are no dependencies required for the RegionGrow QGIS plugin tool beyond the dependencies required by QGIS.
+There are no dependencies required for the RegionGrow QGIS plugin tool beyond the dependencies required and installed by QGIS.
 
 # Funding
 
