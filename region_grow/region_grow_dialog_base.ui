@@ -45,8 +45,16 @@
          <height>60</height>
         </size>
        </property>
+       <property name="font">
+        <font>
+         <pointsize>24</pointsize>
+        </font>
+       </property>
        <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:36pt;&quot;&gt;The Region Growing Plugin (RegionGrow)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <string>The Region Growing Plugin (RegionGrow)</string>
+       </property>
+       <property name="scaledContents">
+        <bool>true</bool>
        </property>
        <property name="wordWrap">
         <bool>true</bool>
