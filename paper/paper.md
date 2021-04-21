@@ -13,9 +13,13 @@ authors:
     -   name: Andy Hardy
         Orchid: 0000-0002-7928-8873
         Affiliation: 1
+    -   name: Yussuf Said Yussuf
+        Affiliation: 2
 affiliations:
     -   name: Department of Geography and Earth Sciences, Aberystwyth University, Aberystwyth SY23 3DB, UK
         index: 1
+    -   name: The State University of Zanzibar (SUZA), Tunguu, P.O.Box 146, Zanzibar
+        index: 2
 date: 01-04-2021
 bibliography: references.bib
 ---
