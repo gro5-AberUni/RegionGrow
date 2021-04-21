@@ -8,18 +8,20 @@ tags:
     -   Python
 authors:
     -   name: Gregory Oakes^[Corresponding author]
-        Orcid: 0000-0002-5054-1548
-        Affiliation: 1
+        orcid: 0000-0002-5054-1548
+        affiliation: 1
     -   name: Andy Hardy
-        Orchid: 0000-0002-7928-8873
-        Affiliation: 1
+        orchid: 0000-0002-7928-8873
+        affiliation: 1
     -   name: Yussuf Said Yussuf
-        Affiliation: 2
+        affiliation: "2, 3"
 affiliations:
     -   name: Department of Geography and Earth Sciences, Aberystwyth University, Aberystwyth SY23 3DB, UK
         index: 1
     -   name: The State University of Zanzibar (SUZA), Tunguu, P.O.Box 146, Zanzibar
         index: 2
+    -   name: Tanzania Flying Labs.
+    	 index: 3
 date: 01-04-2021
 bibliography: references.bib
 ---
