@@ -1,29 +1,30 @@
 ---
 title: 'The Region Growing Plugin (RegionGrow)'
 tags:
-    -   QGIS
-    -   Region Growing
-    -   GIS
-    -   Remote Sensing
-    -   Python
+  - QGIS
+  - Region Growing
+  - GIS
+  - Remote Sensing
+  - Python
 authors:
-    -   name: Gregory Oakes^[Corresponding author]
-        orcid: 0000-0002-5054-1548
-        affiliation: 1
-    -   name: Andy Hardy
-        orchid: 0000-0002-7928-8873
-        affiliation: 1
-    -   name: Yussuf Said Yussuf
-        affiliation: "2, 3"
+  - name: Gregory Oakes^[Corresponding Author]
+    orchid: 0000-0002-5054-1548
+    affiliation: 1
+  - name: Andy Hardy
+    orchid: 0000-0002-7928-8873
+    affiliation: 1
+  - name: Yussuf Said Yussuf
+    affiliation: "2, 3"
 affiliations:
-    -   name: Department of Geography and Earth Sciences, Aberystwyth University, Aberystwyth SY23 3DB, UK
-        index: 1
-    -   name: The State University of Zanzibar (SUZA), Tunguu, P.O.Box 146, Zanzibar
-        index: 2
-    -   name: Tanzania Flying Labs.
-    	 index: 3
-date: 01-04-2021
+  - name: Department of Geography and Earth Sciences, Aberystwyth University, Aberystwyth SY23 3DB, UK
+    index: 1
+  - name: The State University of Zanzibar (SUZA), Tunguu, P.O.Box 146, Zanzibar
+    index: 2
+  - name: Tanzania Flying Labs
+    index: 3
+date: 21-04-2021
 bibliography: references.bib
+
 ---
 
 # Summary
