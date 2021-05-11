@@ -91,7 +91,7 @@ axis (*a*) and a blue-yellow axis (*b*) [@rathore2012colour; @baldevbhai2012colo
 the uneven distribution of RGB values within the colour image [@niu2014image]. Other imagery, i.e. multispectral optical imagery or radar
 backscatter imagery, do not undergo colour transformation.
 
-![Figure 2a) Example RGB Drone imagery. b) The same drone imagery converted into an L\*A\*B* colour space.](Figure2.png){width="3.937007874015748in"
+![a) Example RGB Drone imagery. b) The same drone imagery converted into an L\*A\*B* colour space.](Figure2.png){width="3.937007874015748in"
 height="5.369911417322835in"}
 
 An output vector filename is defined by the user before continuing to
@@ -103,7 +103,7 @@ The user selects/clicks on a point of interest within the image. The
 coordinates of the selected point is retrieved and a square
 neighbourhood created (based on a user defined distance).
 
-![Figure 3a). Location of user click within RGB drone imagery. B) L\*A\*B* transformed drone imagery and the location of the user clicked location. C) Local neighbourhood around in this case 25m around the user clicked location within the drone imagery. ](Figure3.png){width="3.937007874015748in"
+![a). Location of user click within RGB drone imagery. B) L\*A\*B* transformed drone imagery and the location of the user clicked location. C) Local neighbourhood around in this case 25m around the user clicked location within the drone imagery. ](Figure3.png){width="3.937007874015748in"
 height="2.6625in"}
 
 **Step 3.**
@@ -113,12 +113,12 @@ The Euclidean colour distance between each pixel and the selected pixel
 is determined. Pixels with a lower colour distance are considered to be
 of a similar colour.
 
-![Figure 4. 3D feature space showing pixels within the local area of the
+![3D feature space showing pixels within the local area of the
 user clicked location. The cross within the plot marks the user clicked
 pixel.](Figure4.png){width="3.937007874015748in"
 height="2.984346019247594in"}
 
-![Figure 5a) RGB Drone Imagery, b) L\*A\*B\* transformed drone imagery and
+![a) RGB Drone Imagery, b) L\*A\*B\* transformed drone imagery and
 the location of the user clicked location. C) Euclidean distance within
 the 3D feature space between the user selected pixels and all pixels
 within the local neighbourhood of pixels.](Figure5.png){width="3.937007874015748in"
@@ -147,7 +147,7 @@ and holes within the feature are filled, and a buffer applied if defined
 by the user. The final region is committed to an output vector dataset
 (e.g. ESRI Shapefile, GeoJSON) as the digitised feature.
 
-![Figure 6a) Pixels are selected where the colour distance is less than a
+![a) Pixels are selected where the colour distance is less than a
 user defined threshold. 6b) Selected pixels are vectorised and the
 feature which directly intersects the user clicked location is selected
 and simplified (c).](Figure6.png){width="3.937007874015748in"
