@@ -160,8 +160,7 @@ There are no dependencies required for the RegionGrow QGIS plugin tool beyond th
 
 # Funding
 
-This Software Development was funded by Innovative Vector Control
-Consortium (IVCC) (Grant Ref: CA/ROC05313853EW) and the Aberystwyth
+This Software Development "…was funded by the Bill and Melinda Gates Foundation Innovation Fund INV-010583 through a grant managed by the Innovative Vector Control Consortium (IVCC)" and the Aberystwyth
 University Doctoral training programme.
 
 # References
