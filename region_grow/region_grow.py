@@ -839,6 +839,8 @@ class RegionGrower:
 
         filename = imageName.split('/')[-1]
 
+        print(saveFile)
+
         try:
 
             if saveFile != '':
@@ -851,6 +853,8 @@ class RegionGrower:
 
                 if str(self.dlg.fileShp.text()).split('.')[-1] == 'shp':
                     outShp = str(self.dlg.fileShp.text()).split('.')[0]+'.geojson'
+                else:
+                    outShp = self.dlg.fileShp.text()
 
             with open(outShp) as r:
                 mergeData = json.load(r)
