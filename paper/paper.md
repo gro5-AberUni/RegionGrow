@@ -51,7 +51,7 @@ generates connects pixels with a similar colour based on its Euclidean
 distance with a L\*A\*B transformed colour space. This rapidly speeds up
 the manual digitising process and minimises error.
 
-![Figure 1. Overview of the processing steps performed by RegionGrow](Figure1.png){width="3.937007874015748in"
+![Overview of the processing steps performed by RegionGrow](Figure1.png){width="3.937007874015748in"
 height="5.369911417322835in"}
 
 # Statement of Need
