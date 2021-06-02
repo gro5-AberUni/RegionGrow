@@ -56,7 +56,7 @@ height="5.369911417322835in"}
 
 # Statement of Need
 
-Within the open source software domain, there is just one region growing tool available from within the Semi-Automatic Classification (SAC) QGIS plugin [@congedo2016semi]. However, this is intended to be used within the SAC classification workflow and cannot be used intuitively for other digitising needs. 
+Within the open source software domain, there is just one region growing tool available from within the Semi-Automatic Classification (SAC) QGIS plugin [@Cogendo2021]. However, this is intended to be used within the SAC classification workflow and cannot be used intuitively for other digitising needs. 
 
 An independent region growing tool is needed for two primary reasons: 1) Where users wish to collect training data for conducting image classifications outside of the SAC plugin tool, for instance, taking advantage of the most current and robust machine learning solutions from within Python libraries like TPOT [@olson2016tpot] or Scikit-Learn [@pedregosa2011scikit]. 2) Where users wish to extract thematic information directly rather than following a classification routine. 
 
