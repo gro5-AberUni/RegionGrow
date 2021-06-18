@@ -1243,7 +1243,6 @@ class RegionGrower:
 
             scratchPath = imageName.replace(filename, '')
 
-
             digitiseTemp = tempfile.mkdtemp()
 
             kxyMap = vals
@@ -1260,12 +1259,10 @@ class RegionGrower:
 
                 if os.path.exists(saveFile+'.geojson') != True:
 
-
                     temp = QgsVectorLayer("polygon?crs=epsg:{0}".format(espgCode), "Data", "memory")
                     QgsVectorFileWriter.writeAsVectorFormat(temp, saveFile, 'System',
                                                                        QgsCoordinateReferenceSystem(espgCode), 'GeoJSON',
                                                                        bool(True))
-
                     temp = None
 
                     outVec = saveFile + '.geojson'
@@ -1317,10 +1314,20 @@ class RegionGrower:
                     value = int(i / geoTrans[1])
                     if value < kxy[1]:
                         pxlNeighbourhood = value
+            if pxlNeighbourhood > kxy[0]:
+                print("Will Fall Edge..")
+
+                pxlNeighbourhood = kxy[0]
+
+
+
 
             originTop = (kxy[1] - pxlNeighbourhood)
 
             originLeft = kxy[0] - pxlNeighbourhood
+
+            if originLeft < 0:
+                originLeft = 0
             rasterorigin = indexToGeo(geoTrans, originLeft, originTop)
             src = None
 
