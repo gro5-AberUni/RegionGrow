@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 """
 /***************************************************************************
  RegionGrower
@@ -390,7 +390,7 @@ class RegionGrower:
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&Region Grow'),
+                self.tr(u'&Region Grower'),
                 action)
             self.iface.removeToolBarIcon(action)
 
