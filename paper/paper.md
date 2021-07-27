@@ -50,9 +50,6 @@ an object of interest, e.g. a forest, water body etc, RegionGrow connects pixels
 distance with a L\*A\*B transformed colour space. This rapidly speeds up
 the manual digitising process and minimises error.
 
-![Overview of the processing steps performed by RegionGrow](Figure1.png){width="3.937007874015748in"
-height="5.369911417322835in"}
-
 # Statement of Need
 
 Within the open source software domain, there are very region growing tools available. Within the Semi-Automatic Classification (SAC) QGIS plugin [@Cogendo2021] is a region growing tool to select like pixels. However, this is intended to be used within the SAC classification workflow and cannot be used intuitively for other digitising needs. In addition there is the ‘Magic Wand’ [@Silvestri2017] plugin which are able to select regions within imagery of similar colour, within a set distance from the point of click and save those to a single vector dataset. However if desired features are outside of this set distance they will not be included in the vector dataset and a new vector layer will have to be produced to include these layers. 
@@ -93,35 +90,35 @@ axis (*a*) and a blue-yellow axis (*b*) [@rathore2012colour; @baldevbhai2012colo
 the uneven distribution of RGB values within the colour image [@niu2014image]. Other imagery, i.e. multispectral optical imagery or radar
 backscatter imagery, do not undergo colour transformation.
 
-![a) Example RGB Drone imagery. b) The same drone imagery converted into an L\*A\*B* colour space.](Figure2.png){width="3.937007874015748in"
+![a) Example RGB Drone imagery. b) The same drone imagery converted into an L\*A\*B* colour space.](Figure1.png){width="3.937007874015748in"
 height="5.369911417322835in"}
 
 **Step 2.**
 
 The user selects/clicks on a point of interest within the image. The
 coordinates of the selected point is retrieved and a square
-neighbourhood created (based on a user defined distance) as outlined in figure 3. A distance is supplied so the plugin only examines pixels which are nearby the user's point of click. As the plugin targets discrete features within the image, there is no requirement to examine pixels in the entire image.
+neighbourhood created (based on a user defined distance) as outlined in figure 2. A distance is supplied so the plugin only examines pixels which are nearby the user's point of click. As the plugin targets discrete features within the image, there is no requirement to examine pixels in the entire image.
 
-![a). Location of user click within RGB drone imagery. B) L\*A\*B* transformed drone imagery and the location of the user clicked location. C) Local neighbourhood around in this case 25m around the user clicked location within the drone imagery. ](Figure3.png){width="3.937007874015748in"
+![a). Location of user click within RGB drone imagery. B) L\*A\*B* transformed drone imagery and the location of the user clicked location. C) Local neighbourhood around in this case 25m around the user clicked location within the drone imagery. ](Figure2.png){width="3.937007874015748in"
 height="2.6625in"}
 
 **Step 3.**
 
-All pixels within the neighbourhood are plotted into a 3D feature space as shown in Figure 4.
+All pixels within the neighbourhood are plotted into a 3D feature space as shown in Figure 3.
 The Euclidean colour distance between each pixel and the selected pixel
-is determined. 
+is determined shown in figure 4. 
 Pixels with a lower colour distance are considered to be
 of a similar colour.
 
 ![3D feature space showing pixels within the local area of the
 user clicked location. The cross within the plot marks the user clicked
-pixel.](Figure4.png){width="3.937007874015748in"
+pixel.](Figure3.png){width="3.937007874015748in"
 height="3.284346019247594in"}
 
 ![a) RGB Drone Imagery, b) L\*A\*B\* transformed drone imagery and
 the location of the user clicked location. C) Euclidean distance within
 the 3D feature space between the user selected pixels and all pixels
-within the local neighbourhood of pixels.](Figure5.png){width="3.937007874015748in"
+within the local neighbourhood of pixels.](Figure4.png){width="3.937007874015748in"
 height="4.587412510936135in"}
 
 A linear spatial weighting is also applied where pixels geographically further
@@ -137,7 +134,7 @@ height="3.6587412510936135in"}
 
 **Step 5.**
 
-The output region (pixels of similar colour as defined by equation 1) are vectorised where they
+The output region (pixels of similar colour as defined by the equation presented in figure 5) are vectorised where they
 intersect the originally selected pixel, i.e. they must be joined to the
 selected pixel.
 
@@ -146,12 +143,12 @@ selected pixel.
 The geometry of this feature is then simplified, broken geometries fixed
 and holes within the feature are filled, and a buffer applied if defined
 by the user. The final region is committed to an output vector dataset
-(e.g. ESRI Shapefile, GeoJSON) as the digitised feature an example can be seen in figure 7. 
+(e.g. ESRI Shapefile, GeoJSON) as the digitised feature an example can be seen in figure 6. 
 
 ![a) Pixels are selected where the colour distance is less than a
 user defined threshold. 6b) Selected pixels are vectorised and the
 feature which directly intersects the user clicked location is selected
-and simplified (c).](Figure6.png){width="3.937007874015748in"
+and simplified (c).](Figure5.png){width="3.937007874015748in"
 height="3.5722451881014874in"}
 
 
