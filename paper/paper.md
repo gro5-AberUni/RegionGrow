@@ -109,7 +109,8 @@ height="2.6625in"}
 
 All pixels within the neighbourhood are plotted into a 3D feature space as shown in Figure 4.
 The Euclidean colour distance between each pixel and the selected pixel
-is determined. Pixels with a lower colour distance are considered to be
+is determined. 
+Pixels with a lower colour distance are considered to be
 of a similar colour.
 
 ![3D feature space showing pixels within the local area of the
