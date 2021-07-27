@@ -89,7 +89,7 @@ units in metres), e.g. Universal Transverse Mercator (UTM).
 Input RGB imagery (typically acquired using commercially available UAV
 platforms) is converted into an *L\*A\*B* colour space, where colour is
 represented by a luminosity channel (*l*), the colour on a red -- green
-axis (*a*) and a blue-yellow axis (*b*) [@rathore2012colour; @baldevbhai2012color; @pandy2017rgblab]. A Comparission between the original RGB colour Image and the *L\*A\*B* transformed image can be seen in Figure .  The *L\*A\*B* colour space can help account for
+axis (*a*) and a blue-yellow axis (*b*) [@rathore2012colour; @baldevbhai2012color; @pandy2017rgblab]. A Comparission between the original RGB colour Image and the *L\*A\*B* transformed image can be seen in Figure 1.  The *L\*A\*B* colour space can help account for
 the uneven distribution of RGB values within the colour image [@niu2014image]. Other imagery, i.e. multispectral optical imagery or radar
 backscatter imagery, do not undergo colour transformation.
 
@@ -100,7 +100,7 @@ height="5.369911417322835in"}
 
 The user selects/clicks on a point of interest within the image. The
 coordinates of the selected point is retrieved and a square
-neighbourhood created (based on a user defined distance). A distance is supplied so the plugin only examines pixels which are nearby the user's point of click. As the plugin targets discrete features within the image, there is no requirement to examine pixels in the entire image.
+neighbourhood created (based on a user defined distance) as outlined in figure 3. A distance is supplied so the plugin only examines pixels which are nearby the user's point of click. As the plugin targets discrete features within the image, there is no requirement to examine pixels in the entire image.
 
 ![a). Location of user click within RGB drone imagery. B) L\*A\*B* transformed drone imagery and the location of the user clicked location. C) Local neighbourhood around in this case 25m around the user clicked location within the drone imagery. ](Figure3.png){width="3.937007874015748in"
 height="2.6625in"}
@@ -116,13 +116,13 @@ of a similar colour.
 ![3D feature space showing pixels within the local area of the
 user clicked location. The cross within the plot marks the user clicked
 pixel.](Figure4.png){width="3.937007874015748in"
-height="3.084346019247594in"}
+height="3.284346019247594in"}
 
 ![a) RGB Drone Imagery, b) L\*A\*B\* transformed drone imagery and
 the location of the user clicked location. C) Euclidean distance within
 the 3D feature space between the user selected pixels and all pixels
 within the local neighbourhood of pixels.](Figure5.png){width="3.937007874015748in"
-height="3.6587412510936135in"}
+height="4.587412510936135in"}
 
 A linear spatial weighting is also applied where pixels geographically further
 from the selected pixel have a lower weighting. This is done to ensure that pixels of similar colour but are far away from the users points of click are not considered to be part of the feature the user is trying to digitise.
@@ -146,7 +146,7 @@ selected pixel.
 The geometry of this feature is then simplified, broken geometries fixed
 and holes within the feature are filled, and a buffer applied if defined
 by the user. The final region is committed to an output vector dataset
-(e.g. ESRI Shapefile, GeoJSON) as the digitised feature. 
+(e.g. ESRI Shapefile, GeoJSON) as the digitised feature an example can be seen in figure 7. 
 
 ![a) Pixels are selected where the colour distance is less than a
 user defined threshold. 6b) Selected pixels are vectorised and the
