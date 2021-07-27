@@ -126,9 +126,9 @@ height="3.6587412510936135in"}
 
 A linear spatial weighting is also applied where pixels geographically further
 from the selected pixel have a lower weighting. This is done to ensure that pixels of similar colour but are far away from the users points of click are not considered to be part of the feature the user is trying to digitise.
-****
 
 
+<br/><br/>
 **Step 4.**
 
 Pixels which can be considered to be of the same region can be defined where the colour distance, summed with the sptial distance have a value greater than the user defined threshold as described in equation 1. Where this condition is not met, pixels are set to set to 0  and considered to be no data values. 
