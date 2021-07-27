@@ -126,7 +126,7 @@ height="3.6587412510936135in"}
 
 A linear spatial weighting is also applied where pixels geographically further
 from the selected pixel have a lower weighting. This is done to ensure that pixels of similar colour but are far away from the users points of click are not considered to be part of the feature the user is trying to digitise.
-
+****
 
 
 **Step 4.**
