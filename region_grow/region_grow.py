@@ -22,7 +22,7 @@
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QFileInfo
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QMessageBox
+from qgis.PyQt.QtWidgets import QAction, QMessageBox, QLabel, QLineEdit
 from qgis.gui import QgsMapToolEmitPoint, QgsMapTool, QgsMapCanvas,QgsMessageBar,QgsMapToolPan
 
 # Initialize Qt resources from file resources.py
@@ -307,7 +307,7 @@ class RegionGrower:
         callback,
         enabled_flag=True,
         add_to_menu=True,
-        add_to_toolbar=True,
+        add_to_toolbar=False,
         status_tip=None,
         whats_this=None,
         parent=None):
@@ -377,14 +377,125 @@ class RegionGrower:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
+        # Add toolbar
+        self.toolbar = self.iface.addToolBar("RegonGrow")
+
+        self.titleLabel = QLabel()
+
+        self.titleLabel.setText(' RegionGrow  ')
+
+        self.toolbar.addWidget(self.titleLabel)
+
+
+
+        # Add Open Dialog Box to the Toolbar #
+
         icon_path = ':/plugins/region_grow/icon.png'
-        self.add_action(
+        self.openDia = self.add_action(
             icon_path,
             text=self.tr(u'RegionGrow'),
             callback=self.run,
             parent=self.iface.mainWindow())
+        self.toolbar.addAction(self.openDia)
+        # Added #
 
-        # will be set False in run()
+        # Add Undo Button #
+
+            # Add Text Label#
+
+        self.undoLabel = QLabel()
+
+        self.undoLabel.setText(' Undo: ')
+
+        self.toolbar.addWidget(self.undoLabel)
+
+        self.undoTB = QAction(QIcon(':/plugins/region_grow/Undo.png'),
+                               QCoreApplication.translate("MyPlugin", "Undo"),
+                               self.iface.mainWindow())
+
+        # Connect action signals to slots
+        self.undoTB.triggered.connect(self.undo)
+
+        self.undoTB.setEnabled(False)
+
+        self.toolbar.addAction(self.undoTB)
+
+
+        # Add Reactivate Tool #
+
+        self.clickLabel = QLabel()
+
+        self.clickLabel.setText(' Activate Tool: ')
+
+        self.toolbar.addWidget(self.clickLabel)
+
+
+        self.reClickTB = QAction(QIcon(':/plugins/region_grow/clickToolTB.png'),
+                               QCoreApplication.translate("MyPlugin", "Reactivate Tool"),
+                               self.iface.mainWindow())
+
+        # Connect action signals to slots
+        self.reClickTB.triggered.connect(self.activateClickTool)
+
+        self.reClickTB.setEnabled(False)
+
+        self.toolbar.addAction(self.reClickTB)
+
+        # Add Finish Button #
+
+        self.finishLabel = QLabel()
+
+        self.finishLabel.setText(' Finish: ')
+
+        self.toolbar.addWidget(self.finishLabel)
+
+        self.finishTB = QAction(QIcon(':/plugins/region_grow/finished.png'),
+                               QCoreApplication.translate("MyPlugin", "Finish"),
+                               self.iface.mainWindow())
+
+        # Connect action signals to slots
+        self.finishTB.triggered.connect(self.finish)
+
+        self.finishTB.setEnabled(False)
+
+        self.toolbar.addAction(self.finishTB)
+
+        # Add Class Value to Toolbar #
+
+            # Add Text Label#
+
+        self.classLabel = QLabel()
+
+        self.classLabel.setText(' Feature Class: ')
+
+        self.toolbar.addWidget(self.classLabel)
+
+        self.featClassTB = QLineEdit()
+        self.featClassTB.setMaxLength(2)
+        self.featClassTB.setText('1')
+        self.featClassTB.setFixedWidth(50)
+        self.featClassTB.textChanged.connect(self.featClassChangeTB)
+
+        self.featClassTB.setEnabled(False)
+        self.toolbar.addWidget(self.featClassTB)
+
+        #### Add Buffer to the Toolbar ####
+
+        self.buffLabel = QLabel()
+
+        self.buffLabel.setText(' Buffer Distance: ')
+
+        self.toolbar.addWidget(self.buffLabel)
+
+        self.buffLabelTB = QLineEdit()
+        self.buffLabelTB.setMaxLength(2)
+        self.buffLabelTB.setText('0')
+        self.buffLabelTB.setFixedWidth(50)
+        self.buffLabelTB.textChanged.connect(self.buffDistChangeTB)
+
+        self.buffLabelTB.setEnabled(False)
+        self.toolbar.addWidget(self.buffLabelTB)
+
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -393,6 +504,7 @@ class RegionGrower:
                 self.tr(u'&Region Grower'),
                 action)
             self.iface.removeToolBarIcon(action)
+        del self.toolbar
 
     def run(self):
         """Run method that performs all the real work"""
@@ -423,7 +535,7 @@ class RegionGrower:
 
         self.dlg.undo.clicked.connect(self.undo)
 
-        self.dlg.shpFind.clicked.connect(self.getShp)
+        self.dlg.saveVectorFile.clicked.connect(self.setFile)
 
         self.dlg.refreshButton.clicked.connect(self.repaintRaster)
 
@@ -438,6 +550,17 @@ class RegionGrower:
         self.dlg.imgTypeDrone.toggled.connect(self.droneImg)
 
         self.dlg.activateMapTool.clicked.connect(self.activateClickTool)
+
+        #### Perform Checks to Activate STart Button ####
+
+        self.dlg.fileDisplay.textChanged.connect(self.enableStart)
+        self.dlg.outVec.textChanged.connect(self.enableStart)
+        self.dlg.nbhood.textChanged.connect(self.enableStart)
+        self.dlg.thresh.textChanged.connect(self.enableStart)
+
+    # @QtCore.pyqtSlot()
+    def enableStart(self):
+        self.dlg.start.setEnabled(bool(self.dlg.fileDisplay.text()) and bool(self.dlg.outVec.text()) and bool(self.dlg.nbhood.text()) and bool(self.dlg.thresh.text()))
 
     def repaintRaster(self):
 
@@ -592,26 +715,28 @@ class RegionGrower:
         self.dlg.imgTypePnt.setEnabled(True)
         return f
 
-    def getShp(self):
-
-        qfd =QFileDialog()
-        title = 'Open Existing Vector Dataset'
-        path = '~/Documents/'
-        f = QFileDialog.getOpenFileName(qfd,title,path)[0]
-        QgsMessageLog.logMessage(f)
-        print(f)
-        self.dlg.fileShp.setText(f)
-        return f
-
     def setFile(self):
         qfd = QFileDialog()
-        title = 'Save File'
+        title = 'Save Vector File'
         path = '~/Documents/'
-        f = QFileDialog.getOpenFileName(qfd, title, path)[0]
+        f = QFileDialog.getSaveFileName(qfd, title, path)[0]
         QgsMessageLog.logMessage(f)
-        print(f)
-        self.dlg.outVec.setText(f)
-        return f
+        currentExt = self.dlg.shpExt.currentText().lower()
+
+        if currentExt == 'shapefile':
+            currentExt = 'shp'
+
+
+
+
+        print(len(f.split('.')))
+        if len(f.split('.')) == 1:
+            fileName = '{0}.{1}'.format(f,currentExt)
+        else:
+            fileName = f
+        print(fileName)
+        self.dlg.outVec.setText(fileName)
+        return fileName
 
     def finish(self):
 
@@ -640,31 +765,33 @@ class RegionGrower:
 
         # self.dlg.shpExt.currentText() # Existing File
 
-        # self.dlg.fileShp.text() # Selected File
-
         #### Determine if Using a new File of an Existing File is being used ####
 
-        if self.dlg.outVec.text() != '':
-            newFile = True
-        else:
+        if os.path.exists(self.dlg.outVec.text()):
             newFile = False
-
+            print('This is Not A New File')
+        else:
+            print('There is a file of this Name')
+            newFile = True
 
         if newFile == True:
 
             if str(self.dlg.shpExt.currentText()) == 'Shapefile':
 
                 #### Perform Dissolve based on Class ####
+                digitisedLayer = saveFile.replace('.shp','.geojson')
+                outputName = self.dlg.outVec.text()
+                saveFile = saveFile.split('/')[-1]
 
-                digitisedLayer = outDir+saveFile+'.geojson'
+                dissolvedLayer = finishTemp+saveFile.replace('.shp','_Dissolved.geojson')
 
-                dissolvedLayer = finishTemp+saveFile+'_Dissolved.geojson'
+                print(dissolvedLayer)
 
                 processing.run("native:dissolve",
                                {'INPUT': digitisedLayer,
                                 'FIELD': ['Class'], 'OUTPUT': dissolvedLayer})
 
-                multipartLayer = finishTemp+saveFile+'_Multipart.geojson'
+                multipartLayer = finishTemp+saveFile.replace('.shp','_Multipart.geojson')
 
                 processing.run("native:multiparttosingleparts", {
                     'INPUT': dissolvedLayer,
@@ -672,10 +799,9 @@ class RegionGrower:
 
                 #### Need to Convert to Shp ####
 
-                outputName = outDir+ saveFile+'.shp'
+                outLayer = QgsVectorLayer(multipartLayer,'Digitised Features')
 
-                outLayer = QgsVectorLayer(multipartLayer)
-
+                print('OutputName: ',outputName)
 
                 QgsVectorFileWriter.writeAsVectorFormat(outLayer, outputName, "UTF-8",driverName = "ESRI Shapefile")
 
@@ -683,9 +809,13 @@ class RegionGrower:
 
             elif str(self.dlg.shpExt.currentText()) == 'GeoJSON':
 
-                digitisedLayer = outDir+saveFile+'.geojson'
+                digitisedLayer = saveFile
 
-                dissolvedLayer = finishTemp+saveFile+'_Dissolved.geojson'
+                saveFile = saveFile.split('/')[-1]
+
+                dissolvedLayer = finishTemp+saveFile.split('/')[-1]+'_Dissolved.geojson'
+
+                print(dissolvedLayer)
 
                 processing.run("native:dissolve",
                                {'INPUT': digitisedLayer,
@@ -721,13 +851,15 @@ class RegionGrower:
 
         elif newFile == False:
 
-            existingExt = str(self.dlg.fileShp.text()).split('.')[-1]
+            existingExt = str(self.dlg.outVec.text()).split('.')[-1]
+
+            print(existingExt)
 
             if existingExt == 'geojson':
 
-                outputName = str(self.dlg.fileShp.text()).split('.')[0]+'_Modified.'+existingExt
+                outputName = str(self.dlg.outVec.text())
 
-                digitisedLayer = QgsVectorLayer(str(self.dlg.fileShp.text()).split('.')[0]+'.geojson')
+                digitisedLayer = QgsVectorLayer(str(self.dlg.outVec.text()),'Digitised Features')
 
                 dissolvedLayer = finishTemp+'Dissolved.geojson'
 
@@ -741,21 +873,14 @@ class RegionGrower:
                     'INPUT': dissolvedLayer,
                     'OUTPUT': multipartLayer})
 
-                outLayer = QgsVectorLayer(multipartLayer)
+                outLayer = QgsVectorLayer(multipartLayer,'Digitised Features')
 
                 QgsVectorFileWriter.writeAsVectorFormat(outLayer, outputName, "System", driverName="GeoJSON")
 
             else:
 
-                outputName = str(self.dlg.fileShp.text()).split('.')[0] + '_Modified.' + existingExt
-
-                if os.path.exists(str(self.dlg.fileShp.text()).split('.')[0] + '.geojson') == True:
-
-                    digitisedLayer = QgsVectorLayer(str(self.dlg.fileShp.text()).split('.')[0] + '.geojson')
-
-                else:
-
-                    digitisedLayer = QgsVectorLayer(str(self.dlg.fileShp.text()).split('.')[0] + '.shp')
+                outputName = str(self.dlg.outVec.text())
+                digitisedLayer = QgsVectorLayer(str(self.dlg.outVec.text().replace('shp','geojson')),'Digitised Features')
 
                 dissolvedLayer = finishTemp + 'Dissolved.geojson'
 
@@ -769,7 +894,12 @@ class RegionGrower:
                     'INPUT': dissolvedLayer,
                     'OUTPUT': multipartLayer})
 
-                outLayer = QgsVectorLayer(multipartLayer)
+                outLayer = QgsVectorLayer(multipartLayer,'Digitised Features')
+
+                ancShpExt = ['cpg', 'dbf', 'prj', 'shp', 'shx']
+
+                for ext in ancShpExt:
+                    os.remove(outputName.replace('shp', ext))
 
                 QgsVectorFileWriter.writeAsVectorFormat(outLayer, outputName, "UTF-8",driverName = "ESRI Shapefile")
 
@@ -783,7 +913,7 @@ class RegionGrower:
 
         shutil.rmtree(finishTemp)
 
-        vLayer = QgsVectorLayer(outputName)
+        vLayer = QgsVectorLayer(outputName,'Digitised Features')
         values = vLayer.dataProvider().fields().indexFromName('Class')
 
         uniqueValues = vLayer.dataProvider().uniqueValues(values)
@@ -835,83 +965,72 @@ class RegionGrower:
 
         imageName = self.dlg.fileDisplay.text()
         saveFile = self.dlg.outVec.text()
-        saveFileExt =self.dlg.fileShp.text()
+        saveFileExt =self.dlg.outVec.text()
 
         filename = imageName.split('/')[-1]
 
         print(saveFile)
 
-        try:
+        if str(self.dlg.outVec.text()).split('.')[-1] == 'shp':
+            outShp = str(self.dlg.outVec.text()).split('.')[0]+'.geojson'
 
-            if saveFile != '':
+        else:
+            outShp = self.dlg.outVec.text()
 
-                outDir = imageName.replace(filename, '')
+        print('outShp ',outShp)
 
-                outShp = outDir + saveFile + '.geojson'
-
-            else:
-
-                if str(self.dlg.fileShp.text()).split('.')[-1] == 'shp':
-                    outShp = str(self.dlg.fileShp.text()).split('.')[0]+'.geojson'
-                else:
-                    outShp = self.dlg.fileShp.text()
-
-            with open(outShp) as r:
-                mergeData = json.load(r)
-            r.close()
-
-            currentFeatures = mergeData.get('features')
-
-            del currentFeatures[-1]
-
-            mergeData['features'] = currentFeatures
-
-            with open(outShp, 'w') as k:
-                json.dump(mergeData, k)
-            k.close()
-
-            layers = iface.mapCanvas().layers()
-            activeLayer = iface.activeLayer()
-            if activeLayer.type() == QgsMapLayer.VectorLayer:
-                QgsProject.instance().removeMapLayers([activeLayer.id()])
-
-            undoLyr = QgsVectorLayer(outShp)
-            values = undoLyr.dataProvider().fields().indexFromName('Class')
-
-            uniqueValues = undoLyr.dataProvider().uniqueValues(values)
-
-            categories = []
-            for unique_value in uniqueValues:
-
-                symbol = QgsSymbol.defaultSymbol(undoLyr.geometryType())
+        with open(outShp) as r:
+            mergeData = json.load(r)
+        r.close()
 
 
-                layer_style = {}
-                layer_style['color'] = colourRamp[unique_value]
-                layer_style['outline'] = '#000000'
-                symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
+        currentFeatures = mergeData.get('features')
 
-                if symbol_layer is not None:
-                    symbol.changeSymbolLayer(0, symbol_layer)
+        del currentFeatures[-1]
+
+        mergeData['features'] = currentFeatures
+
+        with open(outShp, 'w') as k:
+            json.dump(mergeData, k)
+        k.close()
+
+        layers = iface.mapCanvas().layers()
+        activeLayer = iface.activeLayer()
+        if activeLayer.type() == QgsMapLayer.VectorLayer:
+            QgsProject.instance().removeMapLayers([activeLayer.id()])
+
+        undoLyr = QgsVectorLayer(outShp)
+        values = undoLyr.dataProvider().fields().indexFromName('Class')
+
+        uniqueValues = undoLyr.dataProvider().uniqueValues(values)
+
+        categories = []
+        for unique_value in uniqueValues:
+
+            symbol = QgsSymbol.defaultSymbol(undoLyr.geometryType())
 
 
-                category = QgsRendererCategory(unique_value, symbol, str(unique_value))
+            layer_style = {}
+            layer_style['color'] = colourRamp[unique_value]
+            layer_style['outline'] = '#000000'
+            symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
 
-                categories.append(category)
+            if symbol_layer is not None:
+                symbol.changeSymbolLayer(0, symbol_layer)
 
-            renderer = QgsCategorizedSymbolRenderer('Class', categories)
 
-            if renderer is not None:
-                undoLyr.setRenderer(renderer)
+            category = QgsRendererCategory(unique_value, symbol, str(unique_value))
 
-            undoLyr.triggerRepaint()
+            categories.append(category)
 
-            QgsProject.instance().addMapLayer(undoLyr)
+        renderer = QgsCategorizedSymbolRenderer('Class', categories)
 
-        except:
+        if renderer is not None:
+            undoLyr.setRenderer(renderer)
 
-            iface.messageBar().pushMessage("Region Grower Plugin", "You Havent Created Any New Features", level=Qgis.Critical,
-                                           duration=2)
+        undoLyr.triggerRepaint()
+
+        QgsProject.instance().addMapLayer(undoLyr)
 
     def start(self):
 
@@ -919,6 +1038,14 @@ class RegionGrower:
         self.dlg.finish.setEnabled(True)
         self.dlg.undo.setEnabled(True)
         self.dlg.activateMapTool.setEnabled(True)
+
+        self.undoTB.setEnabled(True)
+        self.reClickTB.setEnabled(True)
+        self.finishTB.setEnabled(True)
+        self.featClassTB.setEnabled(True)
+        self.buffLabelTB.setEnabled(True)
+
+        self.dlg.classValue.textChanged.connect(self.featClassChangeDlg)
 
         if self.dlg.imgTypeS2.isChecked() or self.dlg.imgTypeLS.isChecked() or self.dlg.imgTypePnt.isChecked():
             self.dlg.refreshButton.setEnabled(True)
@@ -944,7 +1071,16 @@ class RegionGrower:
 
         rasterLyr = QgsRasterLayer(imageName,"Data")
         rasterLyr.isValid()
-        crs = rasterLyr.crs().authid().split(':')[1]
+        print(rasterLyr)
+        print(rasterLyr.crs().authid())
+
+
+        if rasterLyr.crs().authid() =='':
+            crs = rasterLyr.crs().geographicCrsAuthId().split(':')[1]
+
+        else:
+            crs = rasterLyr.crs().authid().split(':')[1]
+
         if crs.startswith('32'):
 
             QgsProject.instance().addMapLayer(rasterLyr)
@@ -1120,17 +1256,48 @@ class RegionGrower:
             rasterLyr = None
 
 
-        if self.dlg.outVec.text() != '':
-            newFile = True
-        else:
+        if os.path.exists(self.dlg.outVec.text()):
             newFile = False
+            print('This is Not A New File')
+        else:
+            print('There is a file of this Name')
+            newFile = True
+
+        #### Existing File ####
+        if newFile == False:
+
+            #### If we have an existing shapefile we step through the shp and associated files and create direct copies of OS temp space ####
+            #### This Temp Files are taken forward ####
+            #### This is only needed for windows machines #### 
+
+            if str(self.dlg.outVec.text()).split('.')[-1] == 'shp':
+
+                #### Create New Temp Directory ####
+
+                existingSHpTempDir = tempfile.TemporaryDirectory().name
+
+                print(existingSHpTempDir)
+
+                os.mkdir(existingSHpTempDir)
+
+                ancShpExt = ['cpg', 'dbf', 'prj', 'shp', 'shx']
+
+                for ext in ancShpExt:
+                    shpFileExt = self.dlg.outVec.text().replace('shp',ext)
+
+                    shutil.copy(shpFileExt,existingSHpTempDir)
+
+                    if ext == 'shp':
+
+                        resVecF = '{0}/{1}'.format(existingSHpTempDir,self.dlg.outVec.text().split('/')[-1])
+
+                        print(resVecF)
+            else:
 
 
-        if newFile==False:
+                resVecF = self.dlg.outVec.text()
 
-            resVecF = self.dlg.fileShp.text()
-
-            resVec = QgsVectorLayer(resVecF)
+            resVec = QgsVectorLayer(resVecF,'Digitised Features')
 
             values = resVec.dataProvider().fields().indexFromName('Class')
 
@@ -1172,25 +1339,25 @@ class RegionGrower:
         ## If Img type is drone then Perfrom LAB transformation ##
 
         if self.dlg.imgTypeDrone.isChecked():
-            
+
             if os.path.isdir(workspace) == False:
-    
+
                 os.mkdir(workspace)
-    
+
             labFileName = '{0}{1}'.format(workspace,filename.replace('.tif','_LAB.tif'))
-    
+
             bands =[]
             for x in range(1, 4):
                 ds = gdal.Open(imageName)
                 bandArray = np.array(ds.GetRasterBand(x).ReadAsArray())
                 bands.append(bandArray)
                 ds = None
-    
+
             color_image = np.stack(bands, axis=2)
             color_image = transformToLAB(color_image)
-    
+
             listOutArrays=[color_image[:, :, 0],color_image[:, :, 1],color_image[:, :, 2]]
-    
+
             gdalSave(refImg=imageName,listOutArray=listOutArrays,fileName=labFileName,form='GTIFF',rasterTL=None,pxlW=None,pxlH=None,espgCode=None)
 
 
@@ -1198,6 +1365,20 @@ class RegionGrower:
         iface.mapCanvas().setMapTool(self.point_tool)
 
         self.point_tool.canvasClicked[float,float].connect(self.getPointsandDigitise)
+
+    def featClassChangeTB(self):
+
+        self.dlg.classValue.setText(self.featClassTB.text())
+
+    def featClassChangeDlg(self):
+
+        self.featClassTB.setText(self.dlg.classValue.text())
+
+    def buffDistChangeTB(self):
+        self.dlg.bufferDistance.setText(self.buffLabelTB.text())
+
+    def buffDistChangeDlg(self):
+        self.buffLabelTB.setText(self.dlg.bufferDistance.text())
 
     def getPointsandDigitise(self,x,y):
 
@@ -1207,379 +1388,387 @@ class RegionGrower:
         QApplication.setOverrideCursor(Qt.WaitCursor)
         QApplication.processEvents()
 
-        try:
+        # try:
 
-            time.sleep(0.1)
+        time.sleep(0.1)
 
-            vals = (x,y)
+        vals = (x,y)
 
-            neighbourhood = int(self.dlg.nbhood.text())
-            threshold = int(self.dlg.thresh.text())
+        neighbourhood = int(self.dlg.nbhood.text())
+        threshold = int(self.dlg.thresh.text())
 
-            imageName = self.dlg.fileDisplay.text()
+        imageName = self.dlg.fileDisplay.text()
 
-            if self.dlg.imgTypeDrone.isChecked():
+        if self.dlg.imgTypeDrone.isChecked():
 
-                imageName=imageName.replace('.tif','_LAB.tif')
+            imageName=imageName.replace('.tif','_LAB.tif')
 
-                filename = imageName.split('/')[-1]
+            filename = imageName.split('/')[-1]
 
-                outDir = imageName.replace(filename, '')
+            outDir = imageName.replace(filename, '')
 
-                workspacePath = imageName.replace(filename, '')
+            workspacePath = imageName.replace(filename, '')
 
-                workspace = workspacePath
-                workspace = '{0}Workspace/'.format(workspace)
+            workspace = workspacePath
+            workspace = '{0}Workspace/'.format(workspace)
 
-                processingImage = workspace + filename
+            processingImage = workspace + filename
 
-            else:
+        else:
 
-                filename = imageName.split('/')[-1]
+            filename = imageName.split('/')[-1]
 
-                outDir = imageName.replace(filename, '')
+            outDir = imageName.replace(filename, '')
 
-                processingImage = self.dlg.fileDisplay.text()
+            processingImage = self.dlg.fileDisplay.text()
 
-            scratchPath = imageName.replace(filename, '')
+        scratchPath = imageName.replace(filename, '')
 
-            digitiseTemp = tempfile.mkdtemp()
+        digitiseTemp = tempfile.mkdtemp()
 
-            kxyMap = vals
+        kxyMap = vals
 
-            if self.dlg.outVec.text() != '':
-                newFile = True
-            else:
-                newFile = False
+        if os.path.exists(self.dlg.outVec.text()) or os.path.exists(self.dlg.outVec.text().replace('shp','geojson')):
+            newFile = False
+            print('This is Not A New File')
+        else:
+            print('There is a file of this Name')
+            newFile = True
 
-            if newFile == True:
+        print('NewFile: ',newFile)
 
-                saveFile = self.dlg.outVec.text()
-                saveFile = outDir + saveFile
+        if newFile == True:
 
-                if os.path.exists(saveFile+'.geojson') != True:
+            saveFile = self.dlg.outVec.text()
 
-                    temp = QgsVectorLayer("polygon?crs=epsg:{0}".format(espgCode), "Data", "memory")
-                    QgsVectorFileWriter.writeAsVectorFormat(temp, saveFile, 'System',
-                                                                       QgsCoordinateReferenceSystem(espgCode), 'GeoJSON',
-                                                                       bool(True))
-                    temp = None
-
-                    outVec = saveFile + '.geojson'
-                else:
-                    outVec = outDir + self.dlg.outVec.text()+'.geojson'
-
-            elif newFile == False:
-
-                saveFile = self.dlg.fileShp.text()
-
-                #### Perform Check to see if file is GeoJSON ####
+            if os.path.exists(saveFile) != True:
 
                 if saveFile.split('.')[-1] == 'shp':
                     #### Create GeoJSON file for processing ####
 
-                    outVec = saveFile.replace('shp','geojson')
+                    saveFile = saveFile.replace('shp', 'geojson')
 
-                    if os.path.exists(outVec) != True:
+                temp = QgsVectorLayer("polygon?crs=epsg:{0}".format(espgCode), "Data", "memory")
+                currentExt = self.dlg.shpExt.currentText().lower()
 
-                        print(outVec)
+                QgsVectorFileWriter.writeAsVectorFormat(temp, saveFile, 'System',
+                                                                       QgsCoordinateReferenceSystem(espgCode), 'GeoJSON',
+                                                                       bool(True))
+                outVec = saveFile
 
-                        readlayer = self.dlg.fileShp.text()
+            else:
+                outVec = self.dlg.outVec.text()
 
-                        outLayer = QgsVectorLayer(readlayer)
+        elif newFile == False:
 
-                        print(outLayer)
+            saveFile = self.dlg.outVec.text()
 
-                        for feature in outLayer.getFeatures():
-                            print(feature)
+            #### Perform Check to see if file is GeoJSON ####
 
-                        QgsVectorFileWriter.writeAsVectorFormat(outLayer, outVec, 'UTF-8',
-                                                                QgsCoordinateReferenceSystem(espgCode), 'GeoJSON')
+            if saveFile.split('.')[-1] == 'shp':
+                #### Create GeoJSON file for processing ####
 
-                else:
+                outVec = saveFile.replace('shp','geojson')
 
-                    outVec = self.dlg.fileShp.text()
+                if os.path.exists(outVec) != True:
 
-                print("Resuming")
+                    print(outVec)
 
-            src = gdal.Open(processingImage)
-            geoTrans = src.GetGeoTransform()
+                    readlayer = self.dlg.outVec.text()
 
-            kxy = geoFindIndex(geoTrans, kxyMap[0], kxyMap[1])
+                    outLayer = QgsVectorLayer(readlayer,'Digitised Features')
 
-            pxlNeighbourhood = int(neighbourhood / geoTrans[1])
-            if pxlNeighbourhood > kxy[1]:
-                print("Will Fall Edge..")
-                for i in range(1, neighbourhood + 1):
-                    value = int(i / geoTrans[1])
-                    if value < kxy[1]:
-                        pxlNeighbourhood = value
-            if pxlNeighbourhood > kxy[0]:
-                print("Will Fall Edge..")
+                    print(outLayer)
 
-                pxlNeighbourhood = kxy[0]
+                    for feature in outLayer.getFeatures():
+                        print(feature)
+
+                    QgsVectorFileWriter.writeAsVectorFormat(outLayer, outVec, 'UTF-8',
+                                                            QgsCoordinateReferenceSystem(espgCode), 'GeoJSON')
+
+            else:
+
+                outVec = self.dlg.outVec.text()
+
+            print("Resuming")
+
+        print('Line 1418: ', outVec)
+
+        src = gdal.Open(processingImage)
+        geoTrans = src.GetGeoTransform()
+
+        kxy = geoFindIndex(geoTrans, kxyMap[0], kxyMap[1])
+
+        pxlNeighbourhood = int(neighbourhood / geoTrans[1])
+        if pxlNeighbourhood > kxy[1]:
+            print("Will Fall Edge..")
+            for i in range(1, neighbourhood + 1):
+                value = int(i / geoTrans[1])
+                if value < kxy[1]:
+                    pxlNeighbourhood = value
+        if pxlNeighbourhood > kxy[0]:
+            print("Will Fall Edge..")
+
+            pxlNeighbourhood = kxy[0]
 
 
 
 
-            originTop = (kxy[1] - pxlNeighbourhood)
+        originTop = (kxy[1] - pxlNeighbourhood)
 
-            originLeft = kxy[0] - pxlNeighbourhood
+        originLeft = kxy[0] - pxlNeighbourhood
 
-            if originLeft < 0:
-                originLeft = 0
-            rasterorigin = indexToGeo(geoTrans, originLeft, originTop)
-            src = None
+        if originLeft < 0:
+            originLeft = 0
+        rasterorigin = indexToGeo(geoTrans, originLeft, originTop)
+        src = None
 
-            #### Select Target Bands to Use for Processing ####
+        #### Select Target Bands to Use for Processing ####
 
-            if self.dlg.imgTypeDrone.isChecked():
+        if self.dlg.imgTypeDrone.isChecked():
 
-                listBandNumbers = list(range(1, 4))
+            listBandNumbers = list(range(1, 4))
 
-            if self.dlg.imgTypeRadar.isChecked():
+        if self.dlg.imgTypeRadar.isChecked():
 
-                listBandNumbers = list(range(1, 4))
+            listBandNumbers = list(range(1, 4))
 
-            if self.dlg.imgTypeS2.isChecked() or self.dlg.imgTypeLS.isChecked() or self.dlg.imgTypePnt.isChecked():
+        if self.dlg.imgTypeS2.isChecked() or self.dlg.imgTypeLS.isChecked() or self.dlg.imgTypePnt.isChecked():
 
-                rBandNum = int(self.dlg.rBand.currentText())
-                gBandNum = int(self.dlg.gBand.currentText())
-                bBandNum = int(self.dlg.bBand.currentText())
+            rBandNum = int(self.dlg.rBand.currentText())
+            gBandNum = int(self.dlg.gBand.currentText())
+            bBandNum = int(self.dlg.bBand.currentText())
 
-                listBandNumbers = [rBandNum,gBandNum,bBandNum]
+            listBandNumbers = [rBandNum,gBandNum,bBandNum]
 
-            bands = []
+        bands = []
 
-            print(listBandNumbers)
+        print(listBandNumbers)
 
-            for x in listBandNumbers:
+        for x in listBandNumbers:
 
-                print(x)
+            print(x)
 
-                ds = gdal.Open(processingImage)
-                bandArray = np.array(ds.GetRasterBand(x).ReadAsArray())
-                bands.append(bandArray)
-                print(bands)
-                ds = None
-
+            ds = gdal.Open(processingImage)
+            bandArray = np.array(ds.GetRasterBand(x).ReadAsArray())
+            bands.append(bandArray)
             print(bands)
+            ds = None
 
-            color_image = np.stack(bands, axis=2)
+        print(bands)
 
-            candiatePixels = GenerateNeighbourhood(color_image, pxlNeighbourhood, kxy)
+        color_image = np.stack(bands, axis=2)
 
-            candiatePixelsLen = len(candiatePixels[0])
-            spatialCentre = candiatePixelsLen / 2
+        candiatePixels = GenerateNeighbourhood(color_image, pxlNeighbourhood, kxy)
 
-            #### There is now a centroid pixel kxy and a neghbourhood of pixels around the centroid from whcih candiates will be selected ####
+        candiatePixelsLen = len(candiatePixels[0])
+        spatialCentre = candiatePixelsLen / 2
 
-            #### There will now be a spatial and spectral distance calculation made and a total distance calculation found ####
+        #### There is now a centroid pixel kxy and a neghbourhood of pixels around the centroid from whcih candiates will be selected ####
 
-            #### plot k centroid in 3 dimensional colour space ####
+        #### There will now be a spatial and spectral distance calculation made and a total distance calculation found ####
 
-            kCentroidColour = getPxlVals(kxy[1], kxy[0], color_image)
+        #### plot k centroid in 3 dimensional colour space ####
 
-            print('Centroid Colour',kCentroidColour)
+        kCentroidColour = getPxlVals(kxy[1], kxy[0], color_image)
 
-            spatialDist = np.empty_like(candiatePixels)[:, :, 0]
+        print('Centroid Colour',kCentroidColour)
 
-            spatialDist = np.indices(spatialDist.shape)
-            coGrid = np.stack(spatialDist)
-            yCo = coGrid[0, :, :]
-            xCo = coGrid[1, :, :]
-            var1 = np.subtract(spatialCentre, xCo)
-            var2 = np.subtract(spatialCentre, yCo)
-            power1 = np.power(var1, 2)
-            power2 = np.power(var2, 2)
-            length = np.add(power1, power2)
-            spatialDist = np.sqrt(length)
-            spatialDist = np.sqrt(spatialDist)
+        spatialDist = np.empty_like(candiatePixels)[:, :, 0]
 
+        spatialDist = np.indices(spatialDist.shape)
+        coGrid = np.stack(spatialDist)
+        yCo = coGrid[0, :, :]
+        xCo = coGrid[1, :, :]
+        var1 = np.subtract(spatialCentre, xCo)
+        var2 = np.subtract(spatialCentre, yCo)
+        power1 = np.power(var1, 2)
+        power2 = np.power(var2, 2)
+        length = np.add(power1, power2)
+        spatialDist = np.sqrt(length)
+        spatialDist = np.sqrt(spatialDist)
 
-            var1 = np.subtract(kCentroidColour[0], candiatePixels[:, :, 0])
-            var2 = np.subtract(kCentroidColour[1], candiatePixels[:, :, 1])
-            var3 = np.subtract(kCentroidColour[2], candiatePixels[:, :, 2])
-            power1 = np.power(var1, 2)
-            power2 = np.power(var2, 2)
-            power3 = np.power(var3, 2)
-            length = np.add(power1, np.add(power2, power3))
-            colorDist = np.sqrt(length)
 
-            totalDistanceGrid = np.add(spatialDist, colorDist)
+        var1 = np.subtract(kCentroidColour[0], candiatePixels[:, :, 0])
+        var2 = np.subtract(kCentroidColour[1], candiatePixels[:, :, 1])
+        var3 = np.subtract(kCentroidColour[2], candiatePixels[:, :, 2])
+        power1 = np.power(var1, 2)
+        power2 = np.power(var2, 2)
+        power3 = np.power(var3, 2)
+        length = np.add(power1, np.add(power2, power3))
+        colorDist = np.sqrt(length)
 
-            binaryGrid = np.where(totalDistanceGrid > threshold, np.nan, 1)
+        totalWeightedDistance = np.add(spatialDist, colorDist)
 
-            outRast = '{0}TempRast.tif'.format(digitiseTemp)
-            tmpVec = '{0}TempVec.geojson'.format(digitiseTemp)
+        binaryGrid = np.where(totalWeightedDistance > threshold, np.nan, 1)
 
-            src = gdal.Open(processingImage)
-            geoTrans = src.GetGeoTransform()
-            rtnX = geoTrans[1]
-            rtnY = geoTrans[5]
-            src = None
+        outRast = '{0}TempRast.tif'.format(digitiseTemp)
+        tmpVec = '{0}TempVec.geojson'.format(digitiseTemp)
 
-            print(candiatePixels.shape)
+        src = gdal.Open(processingImage)
+        geoTrans = src.GetGeoTransform()
+        rtnX = geoTrans[1]
+        rtnY = geoTrans[5]
+        src = None
 
-            # gdalSave(refImg=None, listOutArray=[candiatePixels[:,:,0],candiatePixels[:,:,0],candiatePixels[:,:,0]], fileName=digitiseTemp+'CandiatePixels', form='GTIFF', rasterTL=rasterorigin, pxlW=rtnX, pxlH=rtnY, espgCode=espgCode)
+        print(candiatePixels.shape)
 
-            gdalSave(refImg=None, listOutArray=[binaryGrid], fileName=outRast, form='GTIFF', rasterTL=rasterorigin, pxlW=rtnX, pxlH=rtnY, espgCode=espgCode)
+        # gdalSave(refImg=None, listOutArray=[candiatePixels[:,:,0],candiatePixels[:,:,0],candiatePixels[:,:,0]], fileName=digitiseTemp+'CandiatePixels', form='GTIFF', rasterTL=rasterorigin, pxlW=rtnX, pxlH=rtnY, espgCode=espgCode)
 
-            rastLayer = QgsRasterLayer(outRast)
+        gdalSave(refImg=None, listOutArray=[binaryGrid], fileName=outRast, form='GTIFF', rasterTL=rasterorigin, pxlW=rtnX, pxlH=rtnY, espgCode=espgCode)
 
-            provider = rastLayer.dataProvider()
+        rastLayer = QgsRasterLayer(outRast)
 
-            provider.setNoDataValue(1, 0)
+        provider = rastLayer.dataProvider()
 
-            rastLayer.triggerRepaint()
+        provider.setNoDataValue(1, 0)
 
-            xmin = vals[0] - 1
-            xmax = vals[0] + 1
+        rastLayer.triggerRepaint()
 
-            ymin = vals[1] - 1
-            ymax = vals[1] + 1
+        xmin = vals[0] - 1
+        xmax = vals[0] + 1
 
-            tL = QgsPointXY(xmin, ymin)
-            bR = QgsPointXY(xmax, ymax)
+        ymin = vals[1] - 1
+        ymax = vals[1] + 1
 
-            rec = QgsRectangle(tL, bR)
+        tL = QgsPointXY(xmin, ymin)
+        bR = QgsPointXY(xmax, ymax)
 
-            processing.run("gdal:polygonize", {'INPUT': rastLayer, 'BAND': 1, 'FIELD': 'DN', 'EIGHT_CONNECTEDNESS': False,
-                                               'OUTPUT': tmpVec})
+        rec = QgsRectangle(tL, bR)
 
-            processingVecInt = tmpVec.replace('.geojson', '_int.geojson')
+        processing.run("gdal:polygonize", {'INPUT': rastLayer, 'BAND': 1, 'FIELD': 'DN', 'EIGHT_CONNECTEDNESS': False,
+                                           'OUTPUT': tmpVec})
 
-            layer = QgsVectorLayer(tmpVec, "tmp Layer", 'ogr')
+        processingVecInt = tmpVec.replace('.geojson', '_int.geojson')
 
-            with edit(layer):
-                # build a request to filter the features based on an attribute
-                request = QgsFeatureRequest().setFilterExpression('"DN" != 1')
+        layer = QgsVectorLayer(tmpVec, "tmp Layer", 'ogr')
 
-                # # we don't need attributes or geometry, skip them to minimize overhead.
-                # # these lines are not strictly required but improve performance
-                request.setSubsetOfAttributes([])
-                request.setFlags(QgsFeatureRequest.NoGeometry)
+        with edit(layer):
+            # build a request to filter the features based on an attribute
+            request = QgsFeatureRequest().setFilterExpression('"DN" != 1')
 
-                for f in layer.getFeatures(request):
-                    layer.deleteFeature(f.id())
+            # # we don't need attributes or geometry, skip them to minimize overhead.
+            # # these lines are not strictly required but improve performance
+            request.setSubsetOfAttributes([])
+            request.setFlags(QgsFeatureRequest.NoGeometry)
 
-            provider = layer.dataProvider()
+            for f in layer.getFeatures(request):
+                layer.deleteFeature(f.id())
 
-            spIndex = QgsSpatialIndex()
-            feat = QgsFeature()
-            fit = provider.getFeatures()
+        provider = layer.dataProvider()
 
-            while fit.nextFeature(feat):
-                spIndex.insertFeature(feat)
+        spIndex = QgsSpatialIndex()
+        feat = QgsFeature()
+        fit = provider.getFeatures()
 
-            nearestIds = spIndex.intersects(rec)
+        while fit.nextFeature(feat):
+            spIndex.insertFeature(feat)
 
-            featureId = nearestIds[0]
+        nearestIds = spIndex.intersects(rec)
 
-            layer.select(featureId)
+        featureId = nearestIds[0]
 
-            QgsVectorFileWriter.writeAsVectorFormat(layer, processingVecInt, 'System',
-                                                    QgsCoordinateReferenceSystem(espgCode),
-                                                    'GeoJSON', bool(True))
+        layer.select(featureId)
 
-            tLayer = QgsVectorLayer(processingVecInt)
-            processingVecIntBuff = processingVecInt.replace('.geojson', '_Buff.geojson')
+        QgsVectorFileWriter.writeAsVectorFormat(layer, processingVecInt, 'System',
+                                                QgsCoordinateReferenceSystem(espgCode),
+                                                'GeoJSON', bool(True))
 
+        tLayer = QgsVectorLayer(processingVecInt,'Digitised Features')
+        processingVecIntBuff = processingVecInt.replace('.geojson', '_Buff.geojson')
 
-            try:
-                bufferDistance = float(self.dlg.bufferDistance.text())
-            except:
-                bufferDistance = 0
 
-
-            if self.dlg.trainingData.isChecked() == True:
-                processing.run("native:buffer",
-                               {'INPUT': tLayer, 'DISTANCE': bufferDistance,
-                                'SEGMENTS': 5, 'END_CAP_STYLE': 0, 'JOIN_STYLE': 0, 'MITER_LIMIT': 2, 'DISSOLVE': True,
-                                'OUTPUT': processingVecIntBuff})
-            else:
-                processing.run("native:buffer",
-                               {'INPUT': tLayer, 'DISTANCE': -0.05,
-                                'SEGMENTS': 5, 'END_CAP_STYLE': 0, 'JOIN_STYLE': 0, 'MITER_LIMIT': 2, 'DISSOLVE': True,
-                                'OUTPUT': processingVecIntBuff})
-
-            #### Fill Holes pxlSize*4 ####
-
-            holeAreaSize = rtnX*4
-            processingVecIntBuffFill=processingVecIntBuff.replace('.geojson','_FillHoles.geojson')
-
-            processing.run("native:deleteholes",
-                           {'INPUT': processingVecIntBuff, 'MIN_AREA': holeAreaSize,
-                            'OUTPUT': processingVecIntBuffFill})
-
-            processingVecIntBuffFillFix = processingVecIntBuff.replace('.geojson', '_Fix.geojson')
-
-            processing.run("native:fixgeometries",
-                           {'INPUT': processingVecIntBuffFill,
-                            'OUTPUT': processingVecIntBuffFillFix})
-
-            with open(processingVecIntBuffFillFix) as f:
-                buffData = json.load(f)
-            f.close()
-
-            featuresToMerge = buffData.get('features')
-
-            featuresToMerge[0]['properties']['Class'] = int(self.dlg.classValue.text())
-            featuresToMerge[0]['properties'].pop('DN')
-
-            with open(outVec) as r:
-                mergeData = json.load(r)
-            r.close()
-
-            currentFeatures = mergeData.get('features')
-
-
-            if len(currentFeatures) == 0:
-                mergeData['features'] = featuresToMerge
-            else:
-                newFeaturesList = currentFeatures+featuresToMerge
-                mergeData['features'] = newFeaturesList
-
-            with open(outVec, 'w') as k:
-                json.dump(mergeData, k)
-            k.close()
-
-            layer = None
-
-
-            layers = iface.mapCanvas().layers()
-            activeLayer = iface.activeLayer()
-            if activeLayer.type() == QgsMapLayer.VectorLayer:
-                QgsProject.instance().removeMapLayers([activeLayer.id()])
-
-            vLayer = QgsVectorLayer(outVec)
-            values = vLayer.dataProvider().fields().indexFromName('Class')
-
-            uniqueValues = vLayer.dataProvider().uniqueValues(values)
-
-            categories = []
-            for unique_value in uniqueValues:
-                symbol = QgsSymbol.defaultSymbol(vLayer.geometryType())
-                layer_style = {}
-                layer_style['color'] = colourRamp[unique_value]
-                layer_style['outline'] = '#000000'
-                symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
-                if symbol_layer is not None:
-                    symbol.changeSymbolLayer(0, symbol_layer)
-
-                category = QgsRendererCategory(unique_value, symbol, str(unique_value))
-                categories.append(category)
-
-            renderer = QgsCategorizedSymbolRenderer('Class', categories)
-            if renderer is not None:
-                vLayer.setRenderer(renderer)
-            vLayer.triggerRepaint()
-            QgsProject.instance().addMapLayer(vLayer)
-
+        try:
+            bufferDistance = float(self.dlg.bufferDistance.text())
         except:
+            bufferDistance = 0
 
-            iface.messageBar().pushMessage("Region Grower Plugin", "Not Enough Spectral Difference Found. Increase the Threshold", level=Qgis.Warning,
-                                           duration=1)
+
+        if self.dlg.trainingData.isChecked() == True:
+            processing.run("native:buffer",
+                           {'INPUT': tLayer, 'DISTANCE': bufferDistance,
+                            'SEGMENTS': 5, 'END_CAP_STYLE': 0, 'JOIN_STYLE': 0, 'MITER_LIMIT': 2, 'DISSOLVE': True,
+                            'OUTPUT': processingVecIntBuff})
+        else:
+            processing.run("native:buffer",
+                           {'INPUT': tLayer, 'DISTANCE': -0.05,
+                            'SEGMENTS': 5, 'END_CAP_STYLE': 0, 'JOIN_STYLE': 0, 'MITER_LIMIT': 2, 'DISSOLVE': True,
+                            'OUTPUT': processingVecIntBuff})
+
+        #### Fill Holes pxlSize*4 ####
+
+        holeAreaSize = rtnX*4
+        processingVecIntBuffFill=processingVecIntBuff.replace('.geojson','_FillHoles.geojson')
+
+        processing.run("native:deleteholes",
+                       {'INPUT': processingVecIntBuff, 'MIN_AREA': holeAreaSize,
+                        'OUTPUT': processingVecIntBuffFill})
+
+        processingVecIntBuffFillFix = processingVecIntBuff.replace('.geojson', '_Fix.geojson')
+
+        processing.run("native:fixgeometries",
+                       {'INPUT': processingVecIntBuffFill,
+                        'OUTPUT': processingVecIntBuffFillFix})
+
+        with open(processingVecIntBuffFillFix) as f:
+            buffData = json.load(f)
+        f.close()
+
+        featuresToMerge = buffData.get('features')
+
+        featuresToMerge[0]['properties']['Class'] = int(self.dlg.classValue.text())
+        featuresToMerge[0]['properties'].pop('DN')
+
+        print('Line 1643: ',outVec)
+
+        with open(outVec) as r:
+            mergeData = json.load(r)
+        r.close()
+
+        currentFeatures = mergeData.get('features')
+
+
+        if len(currentFeatures) == 0:
+            mergeData['features'] = featuresToMerge
+        else:
+            newFeaturesList = currentFeatures+featuresToMerge
+            mergeData['features'] = newFeaturesList
+
+        with open(outVec, 'w') as k:
+            json.dump(mergeData, k)
+        k.close()
+
+        layer = None
+
+
+        layers = iface.mapCanvas().layers()
+        activeLayer = iface.activeLayer()
+        if activeLayer.type() == QgsMapLayer.VectorLayer:
+            QgsProject.instance().removeMapLayers([activeLayer.id()])
+
+        vLayer = QgsVectorLayer(outVec,'Digitised Features')
+        values = vLayer.dataProvider().fields().indexFromName('Class')
+
+        uniqueValues = vLayer.dataProvider().uniqueValues(values)
+
+        categories = []
+        for unique_value in uniqueValues:
+            symbol = QgsSymbol.defaultSymbol(vLayer.geometryType())
+            layer_style = {}
+            layer_style['color'] = colourRamp[unique_value]
+            layer_style['outline'] = '#000000'
+            symbol_layer = QgsSimpleFillSymbolLayer.create(layer_style)
+            if symbol_layer is not None:
+                symbol.changeSymbolLayer(0, symbol_layer)
+
+            category = QgsRendererCategory(unique_value, symbol, str(unique_value))
+            categories.append(category)
+
+        renderer = QgsCategorizedSymbolRenderer('Class', categories)
+        if renderer is not None:
+            vLayer.setRenderer(renderer)
+        vLayer.triggerRepaint()
+        QgsProject.instance().addMapLayer(vLayer)
 
 
         QApplication.restoreOverrideCursor()
@@ -1589,3 +1778,5 @@ class RegionGrower:
                                        duration=1)
 
         iface.mapCanvas().setMapTool(self.point_tool)
+
+

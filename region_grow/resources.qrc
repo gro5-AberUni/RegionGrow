@@ -4,5 +4,8 @@
         <file>refresh.png</file>
         <file>footer.png</file>
         <file>clickTool.png</file>
+        <file>Undo.png</file>
+        <file>finished.png</file>
+        <file>clickToolTB.png</file>
     </qresource>
 </RCC>
