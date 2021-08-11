@@ -709,6 +709,7 @@ class RegionGrower:
         print(f)
         self.dlg.fileDisplay.setText(f)
         self.dlg.imgTypeDrone.setEnabled(True)
+        self.dlg.imgTypeDrone.setChecked(True)
         self.dlg.imgTypeRadar.setEnabled(True)
         self.dlg.imgTypeS2.setEnabled(True)
         self.dlg.imgTypeLS.setEnabled(True)
@@ -1336,7 +1337,7 @@ class RegionGrower:
         workspace = workspacePath
         workspace = '{0}Workspace/'.format(workspace)
 
-        ## If Img type is drone then Perfrom LAB transformation ##
+        ## If Img type is drone then Perfrom LAB transformation #
 
         if self.dlg.imgTypeDrone.isChecked():
 
@@ -1365,6 +1366,10 @@ class RegionGrower:
         iface.mapCanvas().setMapTool(self.point_tool)
 
         self.point_tool.canvasClicked[float,float].connect(self.getPointsandDigitise)
+
+        iface.mainWindow().raise_()
+
+
 
     def featClassChangeTB(self):
 
