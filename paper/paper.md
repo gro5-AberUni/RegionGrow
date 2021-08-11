@@ -129,8 +129,8 @@ from the selected pixel have a lower weighting. This is done to ensure that pixe
 
 Pixels which can be considered to be of the same region can be defined where the colour distance, summed with the sptial distance have a value greater than the user defined threshold as described in figure 5. Where this condition is not met, pixels are set to set to 0  and considered to be no data values. 
 
-![](Equation1.png){width="6in"
-height="4in"}
+![](Equation1.png){width="5in"
+height="3.5in"}
 
 **Step 5.**
 
